@@ -10,7 +10,12 @@ import {
   Typography,
   Container,
   Alert,
-  Paper
+  Paper,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  SelectChangeEvent
 } from '@mui/material'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import AuthContext from '../../context/AuthContext'
@@ -18,9 +23,16 @@ import AuthContext from '../../context/AuthContext'
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [selectedTenant, setSelectedTenant] = useState('default')
   const [formErrors, setFormErrors] = useState<{email?: string, password?: string}>({})
   
-  const { login, error, clearError } = useContext(AuthContext)
+  const { login, error, clearError, tenantId, setTenantId } = useContext(AuthContext)
+
+  // Available tenants
+  const tenants = [
+    { id: 'default', name: 'LearnMsDb' },
+    { id: 'ngo', name: 'NgoLms' }
+  ]
 
   const validateForm = () => {
     const errors: {email?: string, password?: string} = {}
@@ -48,8 +60,13 @@ const Login = () => {
     clearError()
     
     if (validateForm()) {
-      await login(email, password)
+      await login(email, password, selectedTenant)
     }
+  }
+
+  const handleTenantChange = (e: SelectChangeEvent) => {
+    setSelectedTenant(e.target.value)
+    setTenantId(e.target.value)
   }
 
   return (
@@ -78,6 +95,23 @@ const Login = () => {
         )}
         
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="tenant-select-label">Database</InputLabel>
+            <Select
+              labelId="tenant-select-label"
+              id="tenant-select"
+              value={selectedTenant}
+              label="Database"
+              onChange={handleTenantChange}
+            >
+              {tenants.map((tenant) => (
+                <MenuItem key={tenant.id} value={tenant.id}>
+                  {tenant.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
           <TextField
             margin="normal"
             required

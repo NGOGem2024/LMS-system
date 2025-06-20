@@ -7,7 +7,7 @@ interface User {
   name: string
   email: string
   role: string
-  tenant?: string
+  tenantId: string
 }
 
 interface AuthContextType {
@@ -15,11 +15,13 @@ interface AuthContextType {
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
+  tenantId: string
+  login: (email: string, password: string, tenantId?: string) => Promise<void>
+  register: (name: string, email: string, password: string, tenantId?: string) => Promise<void>
   logout: () => void
   error: string | null
   clearError: () => void
+  setTenantId: (id: string) => void
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,11 +29,13 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   isAuthenticated: false,
   isLoading: true,
+  tenantId: 'default',
   login: async () => {},
   register: async () => {},
   logout: () => {},
   error: null,
   clearError: () => {},
+  setTenantId: () => {},
 })
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -40,17 +44,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [tenantId, setTenantId] = useState<string>(localStorage.getItem('tenantId') || 'default')
   
   const navigate = useNavigate()
 
-  // Set auth token for axios requests
+  // Set auth token and tenant for axios requests
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     } else {
       delete axios.defaults.headers.common['Authorization']
     }
-  }, [token])
+    
+    // Set tenant ID header
+    if (tenantId) {
+      axios.defaults.headers.common['X-Tenant-ID'] = tenantId
+      localStorage.setItem('tenantId', tenantId)
+    }
+  }, [token, tenantId])
 
   // Load user if token exists
   useEffect(() => {
@@ -62,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         const res = await axios.get('/api/auth/me')
-        setUser(res.data)
+        setUser(res.data.data)
         setIsAuthenticated(true)
       } catch (err) {
         localStorage.removeItem('token')
@@ -78,31 +89,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loadUser()
   }, [token])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, loginTenantId?: string) => {
     try {
+      // Use provided tenant ID or fallback to current tenant ID
+      const currentTenantId = loginTenantId || tenantId
+      
+      // Set tenant ID header for this request
+      axios.defaults.headers.common['X-Tenant-ID'] = currentTenantId
+      
       const res = await axios.post('/api/auth/login', { email, password })
       localStorage.setItem('token', res.data.token)
       setToken(res.data.token)
       setUser(res.data.user)
+      
+      // Update tenant ID if it came from user data
+      if (res.data.user && res.data.user.tenantId) {
+        setTenantId(res.data.user.tenantId)
+      } else if (loginTenantId) {
+        // Otherwise use the provided tenant ID
+        setTenantId(loginTenantId)
+      }
+      
       setIsAuthenticated(true)
       setError(null)
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.')
+      setError(err.response?.data?.error || 'Login failed. Please try again.')
     }
   }
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string, registerTenantId?: string) => {
     try {
+      // Use provided tenant ID or fallback to current tenant ID
+      const currentTenantId = registerTenantId || tenantId
+      
+      // Set tenant ID header for this request
+      axios.defaults.headers.common['X-Tenant-ID'] = currentTenantId
+      
       const res = await axios.post('/api/auth/register', { name, email, password })
       localStorage.setItem('token', res.data.token)
       setToken(res.data.token)
       setUser(res.data.user)
+      
+      // Update tenant ID if it came from user data
+      if (res.data.user && res.data.user.tenantId) {
+        setTenantId(res.data.user.tenantId)
+      } else if (registerTenantId) {
+        // Otherwise use the provided tenant ID
+        setTenantId(registerTenantId)
+      }
+      
       setIsAuthenticated(true)
       setError(null)
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.')
+      setError(err.response?.data?.error || 'Registration failed. Please try again.')
     }
   }
 
@@ -111,6 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(null)
     setUser(null)
     setIsAuthenticated(false)
+    // Don't clear tenant ID on logout
     navigate('/login')
   }
 
@@ -125,11 +167,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         token,
         isAuthenticated,
         isLoading,
+        tenantId,
         login,
         register,
         logout,
         error,
-        clearError
+        clearError,
+        setTenantId
       }}
     >
       {children}

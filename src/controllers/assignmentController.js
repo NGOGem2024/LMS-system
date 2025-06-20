@@ -1,9 +1,7 @@
 const Assignment = require('../models/Assignment');
 const Course = require('../models/Course');
 
-// @desc    Get all assignments
-// @route   GET /api/assignments
-// @access  Private
+
 exports.getAssignments = async (req, res) => {
   try {
     let query;

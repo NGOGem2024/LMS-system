@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { getConnectionForTenant } = require('../utils/tenantUtils');
 
 /**
  * Middleware to protect routes
@@ -6,7 +7,7 @@ const jwt = require('jsonwebtoken');
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
   let token;
 
   // Check for token in headers
@@ -35,6 +36,17 @@ const protect = (req, res, next) => {
     // Set tenant ID if available in token
     if (decoded.tenantId) {
       req.tenantId = decoded.tenantId;
+      
+      // Only get tenant connection if not already set (e.g. by tenantMiddleware)
+      if (!req.tenantConnection) {
+        try {
+          const connection = await getConnectionForTenant(decoded.tenantId);
+          req.tenantConnection = connection;
+        } catch (connErr) {
+          console.error(`Error getting tenant connection: ${connErr.message}`);
+          // Continue without connection - next middleware might handle it
+        }
+      }
     }
 
     next();

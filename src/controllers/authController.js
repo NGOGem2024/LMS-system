@@ -1,7 +1,7 @@
-const User = require('../models/User');
+const { getModel } = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { extractTenantId } = require('../utils/tenantUtils');
+const { extractTenantId, getConnectionForTenant } = require('../utils/tenantUtils');
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -19,6 +19,12 @@ exports.register = async (req, res) => {
         error: 'Tenant ID is required'
       });
     }
+
+    // Get tenant connection
+    const connection = await getConnectionForTenant(tenantId);
+    
+    // Get User model for this tenant
+    const User = getModel(connection, 'User');
 
     // Check if user exists
     const userExists = await User.findOne({ email, tenantId });
@@ -96,6 +102,14 @@ exports.login = async (req, res) => {
       });
     }
 
+    console.log(`Attempting login for email: ${email} in tenant: ${tenantId}`);
+    
+    // Get tenant connection
+    const connection = await getConnectionForTenant(tenantId);
+    
+    // Get User model for this tenant
+    const User = getModel(connection, 'User');
+
     // Check for user
     const user = await User.findOne({ email, tenantId }).select('+password');
 
@@ -148,6 +162,12 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
+    // Get tenant connection from request
+    const connection = req.tenantConnection;
+    
+    // Get User model for this tenant
+    const User = getModel(connection, 'User');
+    
     const user = await User.findById(req.user.id);
 
     res.status(200).json({
@@ -181,6 +201,12 @@ exports.updateProfile = async (req, res) => {
       fieldsToUpdate[key] === undefined && delete fieldsToUpdate[key]
     );
 
+    // Get tenant connection from request
+    const connection = req.tenantConnection;
+    
+    // Get User model for this tenant
+    const User = getModel(connection, 'User');
+
     // Update user
     const user = await User.findByIdAndUpdate(
       req.user.id,
@@ -210,6 +236,12 @@ exports.updateProfile = async (req, res) => {
 exports.updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+
+    // Get tenant connection from request
+    const connection = req.tenantConnection;
+    
+    // Get User model for this tenant
+    const User = getModel(connection, 'User');
 
     // Get user with password
     const user = await User.findById(req.user.id).select('+password');

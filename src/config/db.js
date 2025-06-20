@@ -7,16 +7,30 @@ const mongoose = require('mongoose');
  */
 const connectDB = async (tenantId = null) => {
   try {
-    // If tenantId is provided and not 'default', connect to that specific database
-    const dbName = tenantId && tenantId !== 'default' ? `${tenantId}Db` : 'LearnMsDb';
+    // Map tenant IDs to specific database names
+    const tenantDbMap = {
+      'default': 'LearnMsDb',
+      'ngo': 'NgoLms'
+      // Add more tenant-to-database mappings as needed
+    };
     
-    // Only modify the connection string if we're not using the default database
-    let connectionString = process.env.MONGO_URI;
-    if (tenantId && tenantId !== 'default' && !connectionString.endsWith('/LearnMsDb')) {
-      connectionString = `${connectionString}${dbName}`;
+    // Determine which database to connect to based on tenant ID
+    // If tenantId exists in the map, use that database, otherwise use tenant-specific naming
+    const dbName = tenantId ? (tenantDbMap[tenantId] || `${tenantId}Db`) : 'LearnMsDb';
+    
+    // Get base connection string without database name
+    let baseUri = process.env.MONGO_URI;
+    if (baseUri.includes('/LearnMsDb')) {
+      baseUri = baseUri.replace('/LearnMsDb', '');
     }
     
-    const conn = await mongoose.connect(connectionString, {
+    // Create connection string with the appropriate database name
+    const connectionString = `${baseUri}/${dbName}`;
+    
+    // Create a new mongoose instance for each tenant to avoid connection conflicts
+    const mongooseInstance = new mongoose.Mongoose();
+    
+    const conn = await mongooseInstance.connect(connectionString, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });

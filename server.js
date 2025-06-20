@@ -4,6 +4,10 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mongoose = require('mongoose');
 
+// Import database connection
+const { connectDB } = require('./src/config/db');
+const { switchToDatabase, getActiveConnections } = require('./src/utils/dbSwitcher');
+
 // Load env vars
 dotenv.config();
 console.log('Environment variables loaded:', Object.keys(process.env));
@@ -32,27 +36,53 @@ app.use('/api/users', require('./src/routes/users'));
 app.use('/api/institutions', require('./src/routes/institutions'));
 app.use('/api/progress', require('./src/routes/userProgress'));
 
-// Connect to MongoDB with multi-tenant support
-const connectDB = async () => {
-  try {
-    console.log('MongoDB URI:', process.env.MONGO_URI);
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (err) {
-    console.error(`Error: ${err.message}`);
+// Connect to default MongoDB database
+connectDB('default')
+  .then(() => {
+    console.log('Default database connection established');
+  })
+  .catch(err => {
+    console.error(`Error connecting to default database: ${err.message}`);
     process.exit(1);
-  }
-};
-
-connectDB();
+  });
 
 // Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to LMS API with Multi-tenant support' });
+});
+
+// Test route for database switching (no auth required - for testing only)
+app.get('/test-db-switch/:tenantId', async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Tenant ID is required'
+      });
+    }
+    
+    const result = await switchToDatabase(tenantId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: `Server error: ${error.message}`
+    });
+  }
+});
+
+app.get('/test-active-connections', (req, res) => {
+  try {
+    const result = getActiveConnections();
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: `Server error: ${error.message}`
+    });
+  }
 });
 
 // Error handler middleware (must be after all routes)

@@ -10,7 +10,12 @@ import {
   Typography,
   Container,
   Alert,
-  Paper
+  Paper,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  SelectChangeEvent
 } from '@mui/material'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import AuthContext from '../../context/AuthContext'
@@ -20,6 +25,7 @@ const Register = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [selectedTenant, setSelectedTenant] = useState('default')
   const [formErrors, setFormErrors] = useState<{
     name?: string,
     email?: string,
@@ -27,7 +33,13 @@ const Register = () => {
     confirmPassword?: string
   }>({})
   
-  const { register, error, clearError } = useContext(AuthContext)
+  const { register, error, clearError, tenantId, setTenantId } = useContext(AuthContext)
+
+  // Available tenants
+  const tenants = [
+    { id: 'default', name: 'LearnMsDb' },
+    { id: 'ngo', name: 'NgoLms' }
+  ]
 
   const validateForm = () => {
     const errors: {
@@ -76,8 +88,13 @@ const Register = () => {
     clearError()
     
     if (validateForm()) {
-      await register(name, email, password)
+      await register(name, email, password, selectedTenant)
     }
+  }
+
+  const handleTenantChange = (e: SelectChangeEvent) => {
+    setSelectedTenant(e.target.value)
+    setTenantId(e.target.value)
   }
 
   return (
@@ -107,6 +124,24 @@ const Register = () => {
         
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
           <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel id="tenant-select-label">Database</InputLabel>
+                <Select
+                  labelId="tenant-select-label"
+                  id="tenant-select"
+                  value={selectedTenant}
+                  label="Database"
+                  onChange={handleTenantChange}
+                >
+                  {tenants.map((tenant) => (
+                    <MenuItem key={tenant.id} value={tenant.id}>
+                      {tenant.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid item xs={12}>
               <TextField
                 autoComplete="name"

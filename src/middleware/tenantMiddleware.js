@@ -1,4 +1,37 @@
 const { extractTenantId, getConnectionForTenant } = require('../utils/tenantUtils');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Register models for a specific tenant connection
+ * @param {Object} connection - Mongoose connection
+ */
+const registerModels = (connection) => {
+  const modelsDir = path.join(__dirname, '../models');
+  
+  // Skip the index.js file
+  const modelFiles = fs.readdirSync(modelsDir)
+    .filter(file => file !== 'index.js' && file.endsWith('.js'));
+  
+  for (const file of modelFiles) {
+    const modelPath = path.join(modelsDir, file);
+    const modelName = file.split('.')[0];
+    
+    // Only register the model if it doesn't exist on this connection
+    if (!connection.models[modelName]) {
+      try {
+        // Require the model schema
+        const modelSchema = require(modelPath).schema;
+        
+        // Register the model with this connection
+        connection.model(modelName, modelSchema);
+        console.log(`Model ${modelName} registered for tenant connection`);
+      } catch (err) {
+        console.error(`Error registering model ${modelName}: ${err.message}`);
+      }
+    }
+  }
+};
 
 /**
  * Middleware to extract tenant ID and set tenant context
@@ -20,6 +53,9 @@ const tenantMiddleware = async (req, res, next) => {
     
     // Get connection for this tenant
     const connection = await getConnectionForTenant(tenantId);
+    
+    // Register models for this connection
+    registerModels(connection);
     
     // Set tenant context on request object
     req.tenantId = tenantId;
