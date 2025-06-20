@@ -12,7 +12,7 @@ exports.register = async (req, res) => {
 
     // Get tenant ID from request
     const tenantId = extractTenantId(req);
-
+  
     if (!tenantId) {
       return res.status(400).json({
         success: false,
@@ -55,6 +55,15 @@ exports.register = async (req, res) => {
     });
   } catch (err) {
     console.error(`Error in register: ${err.message}`);
+    
+    // Check for duplicate email error
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is already registered. Please use a different email or try logging in.'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       error: 'Server Error'

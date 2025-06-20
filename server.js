@@ -6,6 +6,9 @@ const mongoose = require('mongoose');
 
 // Load env vars
 dotenv.config();
+console.log('Environment variables loaded:', Object.keys(process.env));
+console.log('JWT_SECRET:', process.env.JWT_SECRET);
+console.log('MONGO_URI:', process.env.MONGO_URI);
 
 // Initialize app
 const app = express();
@@ -32,6 +35,7 @@ app.use('/api/progress', require('./src/routes/userProgress'));
 // Connect to MongoDB with multi-tenant support
 const connectDB = async () => {
   try {
+    console.log('MongoDB URI:', process.env.MONGO_URI);
     const conn = await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,

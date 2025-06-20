@@ -2,6 +2,7 @@ const User = require('./User');
 const Tenant = require('./Tenant');
 const Course = require('./Course');
 const Assignment = require('./Assignment');
+const AssignmentSubmission = require('./AssignmentSubmission');
 const Quiz = require('./Quiz');
 const UserProgress = require('./UserProgress');
 const Institution = require('./Institution');
@@ -12,6 +13,7 @@ module.exports = {
   Tenant,
   Course,
   Assignment,
+  AssignmentSubmission,
   Quiz,
   UserProgress,
   Institution,

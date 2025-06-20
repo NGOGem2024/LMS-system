@@ -60,8 +60,8 @@ const extractTenantId = (req) => {
   // Option 3: Extract from JWT token (assuming token is already verified)
   const tokenTenantId = req.user ? req.user.tenantId : null;
   
-  // Return the first valid tenantId found
-  return subdomain || tenantHeader || tokenTenantId;
+  // Return the first valid tenantId found or default to 'default'
+  return subdomain || tenantHeader || tokenTenantId || 'default';
 };
 
 module.exports = {

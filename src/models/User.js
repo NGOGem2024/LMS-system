@@ -12,7 +12,6 @@ const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, 'Please add an email'],
-    unique: true,
     match: [
       /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
       'Please add a valid email'
@@ -64,6 +63,9 @@ const UserSchema = new mongoose.Schema({
     }
   }
 });
+
+// Create compound index for email and tenantId to ensure email is unique per tenant
+UserSchema.index({ email: 1, tenantId: 1 }, { unique: true });
 
 // Encrypt password using bcrypt
 UserSchema.pre('save', async function(next) {

@@ -7,9 +7,14 @@ const mongoose = require('mongoose');
  */
 const connectDB = async (tenantId = null) => {
   try {
-    // If tenantId is provided, connect to that specific database
-    const dbName = tenantId ? `${tenantId}Db` : 'LearnMsDb';
-    const connectionString = process.env.MONGO_URI.replace('LearnMsDb', dbName);
+    // If tenantId is provided and not 'default', connect to that specific database
+    const dbName = tenantId && tenantId !== 'default' ? `${tenantId}Db` : 'LearnMsDb';
+    
+    // Only modify the connection string if we're not using the default database
+    let connectionString = process.env.MONGO_URI;
+    if (tenantId && tenantId !== 'default' && !connectionString.endsWith('/LearnMsDb')) {
+      connectionString = `${connectionString}${dbName}`;
+    }
     
     const conn = await mongoose.connect(connectionString, {
       useNewUrlParser: true,

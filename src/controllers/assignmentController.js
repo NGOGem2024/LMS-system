@@ -1,9 +1,10 @@
+const Assignment = require('../models/Assignment');
 const Course = require('../models/Course');
 
-// @desc    Get all courses
-// @route   GET /api/courses
+// @desc    Get all assignments
+// @route   GET /api/assignments
 // @access  Private
-exports.getCourses = async (req, res) => {
+exports.getAssignments = async (req, res) => {
   try {
     let query;
 
@@ -26,7 +27,7 @@ exports.getCourses = async (req, res) => {
     queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
 
     // Finding resource
-    query = Course.find(JSON.parse(queryStr));
+    query = Assignment.find(JSON.parse(queryStr));
 
     // Select Fields
     if (req.query.select) {
@@ -47,7 +48,7 @@ exports.getCourses = async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const total = await Course.countDocuments(JSON.parse(queryStr));
+    const total = await Assignment.countDocuments(JSON.parse(queryStr));
 
     query = query.skip(startIndex).limit(limit);
 
@@ -57,15 +58,17 @@ exports.getCourses = async (req, res) => {
       populateFields.forEach(field => {
         query = query.populate(field);
       });
+    } else {
+      query = query.populate('course', 'title');
     }
 
     // Executing query
-    const courses = await query;
+    const assignments = await query;
 
-    // Format the response to match what the frontend expects - an array directly
-    res.status(200).json(courses);
+    // Return assignments array directly to match frontend expectations
+    res.status(200).json(assignments);
   } catch (err) {
-    console.error(`Error in getCourses: ${err.message}`);
+    console.error(`Error in getAssignments: ${err.message}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -73,15 +76,48 @@ exports.getCourses = async (req, res) => {
   }
 };
 
-// @desc    Get single course
-// @route   GET /api/courses/:id
+// @desc    Get single assignment
+// @route   GET /api/assignments/:id
 // @access  Private
-exports.getCourse = async (req, res) => {
+exports.getAssignment = async (req, res) => {
   try {
-    const course = await Course.findOne({
+    const assignment = await Assignment.findOne({
       _id: req.params.id,
       tenantId: req.tenantId
-    }).populate('instructor', 'name email');
+    }).populate([
+      { path: 'course', select: 'title' },
+      { path: 'module', select: 'title' },
+      { path: 'createdBy', select: 'name email' }
+    ]);
+
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Assignment not found'
+      });
+    }
+
+    // Return assignment directly to match frontend expectations
+    res.status(200).json(assignment);
+  } catch (err) {
+    console.error(`Error in getAssignment: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};
+
+// @desc    Create new assignment
+// @route   POST /api/assignments
+// @access  Private/Instructor
+exports.createAssignment = async (req, res) => {
+  try {
+    // Check if course exists and belongs to tenant
+    const course = await Course.findOne({
+      _id: req.body.course,
+      tenantId: req.tenantId
+    });
 
     if (!course) {
       return res.status(404).json({
@@ -90,38 +126,20 @@ exports.getCourse = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      success: true,
-      data: course
-    });
-  } catch (err) {
-    console.error(`Error in getCourse: ${err.message}`);
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
-  }
-};
-
-// @desc    Create new course
-// @route   POST /api/courses
-// @access  Private/Instructor
-exports.createCourse = async (req, res) => {
-  try {
     // Add user to req.body
-    req.body.instructor = req.user.id;
+    req.body.createdBy = req.user.id;
     
     // Add tenant to req.body
     req.body.tenantId = req.tenantId;
 
-    const course = await Course.create(req.body);
+    const assignment = await Assignment.create(req.body);
 
     res.status(201).json({
       success: true,
-      data: course
+      data: assignment
     });
   } catch (err) {
-    console.error(`Error in createCourse: ${err.message}`);
+    console.error(`Error in createAssignment: ${err.message}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -129,41 +147,40 @@ exports.createCourse = async (req, res) => {
   }
 };
 
-// @desc    Update course
-// @route   PUT /api/courses/:id
+// @desc    Update assignment
+// @route   PUT /api/assignments/:id
 // @access  Private/Instructor
-exports.updateCourse = async (req, res) => {
+exports.updateAssignment = async (req, res) => {
   try {
-    let course = await Course.findOne({
+    let assignment = await Assignment.findOne({
       _id: req.params.id,
       tenantId: req.tenantId
     });
 
-    if (!course) {
+    if (!assignment) {
       return res.status(404).json({
         success: false,
-        error: 'Course not found'
+        error: 'Assignment not found'
       });
     }
 
-    // Make sure user is course instructor or admin
+    // Make sure user is assignment creator or admin
     if (
-      course.instructor.toString() !== req.user.id &&
+      assignment.createdBy.toString() !== req.user.id &&
       req.user.role !== 'admin'
     ) {
       return res.status(401).json({
         success: false,
-        error: 'Not authorized to update this course'
+        error: 'Not authorized to update this assignment'
       });
     }
 
     // Remove fields that shouldn't be updated directly
     const updateData = { ...req.body };
-    delete updateData.instructor;
+    delete updateData.createdBy;
     delete updateData.tenantId;
-    delete updateData.slug;
 
-    course = await Course.findByIdAndUpdate(
+    assignment = await Assignment.findByIdAndUpdate(
       req.params.id,
       updateData,
       {
@@ -174,10 +191,10 @@ exports.updateCourse = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: course
+      data: assignment
     });
   } catch (err) {
-    console.error(`Error in updateCourse: ${err.message}`);
+    console.error(`Error in updateAssignment: ${err.message}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -185,76 +202,42 @@ exports.updateCourse = async (req, res) => {
   }
 };
 
-// @desc    Delete course
-// @route   DELETE /api/courses/:id
+// @desc    Delete assignment
+// @route   DELETE /api/assignments/:id
 // @access  Private/Instructor
-exports.deleteCourse = async (req, res) => {
+exports.deleteAssignment = async (req, res) => {
   try {
-    const course = await Course.findOne({
+    const assignment = await Assignment.findOne({
       _id: req.params.id,
       tenantId: req.tenantId
     });
 
-    if (!course) {
+    if (!assignment) {
       return res.status(404).json({
         success: false,
-        error: 'Course not found'
+        error: 'Assignment not found'
       });
     }
 
-    // Make sure user is course instructor or admin
+    // Make sure user is assignment creator or admin
     if (
-      course.instructor.toString() !== req.user.id &&
+      assignment.createdBy.toString() !== req.user.id &&
       req.user.role !== 'admin'
     ) {
       return res.status(401).json({
         success: false,
-        error: 'Not authorized to delete this course'
+        error: 'Not authorized to delete this assignment'
       });
     }
 
-    await course.remove();
+    await assignment.remove();
 
     res.status(200).json({
       success: true,
       data: {}
     });
   } catch (err) {
-    console.error(`Error in deleteCourse: ${err.message}`);
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
-  }
-};
-
-// @desc    Get courses enrolled by current user
-// @route   GET /api/courses/enrolled
-// @access  Private
-exports.getEnrolledCourses = async (req, res) => {
-  try {
-    // Find user progress records for the current user
-    const UserProgress = require('../models/UserProgress');
-    
-    // Get course IDs from user progress
-    const userProgress = await UserProgress.find({
-      user: req.user.id,
-      tenantId: req.tenantId
-    }).select('course');
-    
-    // Extract course IDs
-    const courseIds = userProgress.map(progress => progress.course);
-    
-    // Find courses with those IDs
-    const courses = await Course.find({
-      _id: { $in: courseIds },
-      tenantId: req.tenantId
-    }).populate('instructor', 'name email');
-    
-    // Format the response to match what the frontend expects - an array directly
-    res.status(200).json(courses);
-  } catch (err) {
-    console.error(`Error in getEnrolledCourses: ${err.message}`);
+    console.error(`Error in deleteAssignment: ${err.message}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'
