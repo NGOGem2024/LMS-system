@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
+import AuthContext from '../../context/AuthContext'
 import {
   Container,
   Typography,
@@ -52,6 +53,7 @@ interface Course {
 }
 
 const Assignments = () => {
+  const { user } = useContext(AuthContext);
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([])
   const [courses, setCourses] = useState<Course[]>([])
@@ -160,11 +162,25 @@ const Assignments = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <AssignmentIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
-        <Typography variant="h4" component="h1">
-          Assignments
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <AssignmentIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
+          <Typography variant="h4" component="h1">
+            Assignments
+          </Typography>
+        </Box>
+        
+        {/* Create Assignment button - only visible to instructors and admins */}
+        {user && (user.role === 'instructor' || user.role === 'admin') && (
+          <Button
+            component={RouterLink}
+            to="/assignments/create"
+            variant="contained"
+            startIcon={<AssignmentIcon />}
+          >
+            Create Assignment
+          </Button>
+        )}
       </Box>
       
       {error && (

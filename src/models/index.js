@@ -30,11 +30,26 @@ const getModel = (connection, modelName) => {
       throw new Error(`Model file for ${modelName} not found`);
     }
     
-    // Get schema from model file
-    const modelSchema = require(modelPath).schema;
+    // Special handling for Certification model which exports multiple models
+    if (modelName === 'Certification') {
+      const certModule = require(modelPath);
+      return certModule.Certification;
+    }
     
-    // Register model with this connection
-    return connection.model(modelName, modelSchema);
+    // Get model from model file - try different export patterns
+    const modelModule = require(modelPath);
+    
+    // Handle different export patterns
+    if (modelModule.schema) {
+      // Direct schema export
+      return connection.model(modelName, modelModule.schema);
+    } else if (typeof modelModule === 'function' && modelModule.modelName) {
+      // Model export
+      return modelModule;
+    } else {
+      // Default mongoose model pattern
+      return connection.model(modelName);
+    }
   } catch (err) {
     console.error(`Error getting model ${modelName}: ${err.message}`);
     throw err;
@@ -53,7 +68,12 @@ const getModels = (connection) => {
   
   for (const file of modelFiles) {
     const modelName = file.split('.')[0];
-    models[modelName] = getModel(connection, modelName);
+    try {
+      models[modelName] = getModel(connection, modelName);
+      console.log(`Model ${modelName} registered for tenant connection`);
+    } catch (err) {
+      console.error(`Error registering model ${modelName}: ${err.message}`);
+    }
   }
   
   return models;

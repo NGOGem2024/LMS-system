@@ -35,6 +35,8 @@ app.use('/api/quizzes', require('./src/routes/quizzes'));
 app.use('/api/users', require('./src/routes/users'));
 app.use('/api/institutions', require('./src/routes/institutions'));
 app.use('/api/progress', require('./src/routes/userProgress'));
+app.use('/api/modules', require('./src/routes/modules'));
+app.use('/api/content', require('./src/routes/content'));
 
 // Connect to default MongoDB database
 connectDB('default')

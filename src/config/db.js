@@ -33,6 +33,11 @@ const connectDB = async (tenantId = null) => {
     const conn = await mongooseInstance.connect(connectionString, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+      socketTimeoutMS: 45000, // Increase socket timeout to 45 seconds
+      connectTimeoutMS: 30000, // Increase connect timeout to 30 seconds
+      keepAlive: true,
+      keepAliveInitialDelay: 300000 // 5 minutes
     });
     
     console.log(`MongoDB Connected: ${conn.connection.host} - Database: ${dbName}`);

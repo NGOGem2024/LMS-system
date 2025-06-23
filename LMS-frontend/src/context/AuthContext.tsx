@@ -17,7 +17,7 @@ interface AuthContextType {
   isLoading: boolean
   tenantId: string
   login: (email: string, password: string, tenantId?: string) => Promise<void>
-  register: (name: string, email: string, password: string, tenantId?: string) => Promise<void>
+  register: (name: string, email: string, password: string, tenantId?: string, role?: string) => Promise<void>
   logout: () => void
   error: string | null
   clearError: () => void
@@ -51,15 +51,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Set auth token and tenant for axios requests
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('Setting Authorization header:', `Bearer ${token}`);
     } else {
-      delete axios.defaults.headers.common['Authorization']
+      delete axios.defaults.headers.common['Authorization'];
+      console.log('Removing Authorization header');
     }
     
     // Set tenant ID header
     if (tenantId) {
-      axios.defaults.headers.common['X-Tenant-ID'] = tenantId
-      localStorage.setItem('tenantId', tenantId)
+      axios.defaults.headers.common['X-Tenant-ID'] = tenantId;
+      localStorage.setItem('tenantId', tenantId);
+      console.log('Setting X-Tenant-ID header:', tenantId);
     }
   }, [token, tenantId])
 
@@ -118,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const register = async (name: string, email: string, password: string, registerTenantId?: string) => {
+  const register = async (name: string, email: string, password: string, registerTenantId?: string, role?: string) => {
     try {
       // Use provided tenant ID or fallback to current tenant ID
       const currentTenantId = registerTenantId || tenantId
@@ -126,7 +129,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Set tenant ID header for this request
       axios.defaults.headers.common['X-Tenant-ID'] = currentTenantId
       
-      const res = await axios.post('/api/auth/register', { name, email, password })
+      // Add role to registration data if provided
+      const registrationData = { name, email, password, role: role || 'student' }
+      
+      const res = await axios.post('/api/auth/register', registrationData)
       localStorage.setItem('token', res.data.token)
       setToken(res.data.token)
       setUser(res.data.user)

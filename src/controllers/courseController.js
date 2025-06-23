@@ -108,13 +108,28 @@ exports.getCourse = async (req, res) => {
 // @access  Private/Instructor
 exports.createCourse = async (req, res) => {
   try {
+    console.log('Creating course with data:', JSON.stringify(req.body));
+    console.log('User ID:', req.user.id);
+    console.log('Tenant ID:', req.tenantId);
+    
     // Add user to req.body
     req.body.instructor = req.user.id;
     
     // Add tenant to req.body
     req.body.tenantId = req.tenantId;
 
-    const course = await Course.create(req.body);
+    // Set a timeout for the operation
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database operation timed out')), 20000);
+    });
+
+    // Create course with timeout
+    const course = await Promise.race([
+      Course.create(req.body),
+      timeoutPromise
+    ]);
+
+    console.log('Course created successfully:', course._id);
 
     res.status(201).json({
       success: true,
@@ -122,6 +137,33 @@ exports.createCourse = async (req, res) => {
     });
   } catch (err) {
     console.error(`Error in createCourse: ${err.message}`);
+    console.error(`Error stack: ${err.stack}`);
+    
+    // Check for specific error types
+    if (err.message === 'Database operation timed out') {
+      return res.status(504).json({
+        success: false,
+        error: 'Database operation timed out. Please try again later.'
+      });
+    }
+    
+    // Check for validation errors
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        error: messages.join(', ')
+      });
+    }
+    
+    // Check for duplicate key error
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        error: 'A course with this title already exists'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -258,6 +300,63 @@ exports.getEnrolledCourses = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server Error'
+    });
+  }
+};
+
+// @desc    Create new course (simplified)
+// @route   POST /api/courses/simple
+// @access  Private/Instructor
+exports.createCourseSimple = async (req, res) => {
+  try {
+    console.log('Creating course with simplified method');
+    console.log('Request body:', JSON.stringify(req.body));
+    console.log('User ID:', req.user.id);
+    console.log('Tenant ID:', req.tenantId);
+    
+    // Add user to req.body
+    const courseData = {
+      ...req.body,
+      instructor: req.user.id,
+      tenantId: req.tenantId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      slug: req.body.title
+        .toLowerCase()
+        .replace(/ /g, '-')
+        .replace(/[^\w-]+/g, '')
+    };
+    
+    // Get the mongoose connection from the request
+    const connection = req.tenantConnection;
+    if (!connection) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection not available'
+      });
+    }
+    
+    // Use the Mongoose model instead of native MongoDB driver
+    const { getModel } = require('../models');
+    const Course = getModel(connection, 'Course');
+    
+    // Create the course using Mongoose
+    const course = await Course.create(courseData);
+    
+    console.log('Course created successfully with ID:', course._id);
+    
+    // Return the created course
+    res.status(201).json({
+      success: true,
+      data: course
+    });
+  } catch (err) {
+    console.error(`Error in createCourseSimple: ${err.message}`);
+    console.error(`Error stack: ${err.stack}`);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Server Error: ' + err.message
     });
   }
 }; 

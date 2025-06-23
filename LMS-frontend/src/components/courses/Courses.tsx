@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Container,
@@ -15,13 +15,16 @@ import {
   Chip,
   Pagination,
   Alert,
-  CardActions
+  CardActions,
+  Fab
 } from '@mui/material'
 import {
   Search as SearchIcon,
-  School as SchoolIcon
+  School as SchoolIcon,
+  Add as AddIcon
 } from '@mui/icons-material'
 import axios from 'axios'
+import AuthContext from '../../context/AuthContext'
 
 interface Course {
   _id: string
@@ -39,6 +42,7 @@ interface Course {
 }
 
 const Courses = () => {
+  const { user } = useContext(AuthContext);
   const [courses, setCourses] = useState<Course[]>([])
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
@@ -115,11 +119,25 @@ const Courses = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <SchoolIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
-        <Typography variant="h4" component="h1">
-          Courses
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <SchoolIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
+          <Typography variant="h4" component="h1">
+            Courses
+          </Typography>
+        </Box>
+        
+        {/* Add Course button - only visible to instructors and admins */}
+        {user && (user.role === 'instructor' || user.role === 'admin') && (
+          <Button
+            component={RouterLink}
+            to="/courses/add"
+            variant="contained"
+            startIcon={<AddIcon />}
+          >
+            Add Course
+          </Button>
+        )}
       </Box>
       
       {error && (
@@ -147,9 +165,20 @@ const Courses = () => {
       
       {filteredCourses.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 5 }}>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" color="text.secondary" gutterBottom>
             No courses found matching your search criteria.
           </Typography>
+          {user && (user.role === 'instructor' || user.role === 'admin') && (
+            <Button
+              component={RouterLink}
+              to="/courses/add"
+              variant="contained"
+              startIcon={<AddIcon />}
+              sx={{ mt: 2 }}
+            >
+              Add Your First Course
+            </Button>
+          )}
         </Box>
       ) : (
         <>
@@ -252,6 +281,24 @@ const Courses = () => {
             />
           </Box>
         </>
+      )}
+      
+      {/* Add a floating action button for mobile */}
+      {user && (user.role === 'instructor' || user.role === 'admin') && (
+        <Fab
+          color="primary"
+          aria-label="add"
+          component={RouterLink}
+          to="/courses/add"
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            display: { xs: 'flex', md: 'none' }
+          }}
+        >
+          <AddIcon />
+        </Fab>
       )}
     </Container>
   )

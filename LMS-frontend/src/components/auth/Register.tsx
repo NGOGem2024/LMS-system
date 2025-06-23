@@ -26,6 +26,7 @@ const Register = () => {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [selectedTenant, setSelectedTenant] = useState('default')
+  const [role, setRole] = useState('student')
   const [formErrors, setFormErrors] = useState<{
     name?: string,
     email?: string,
@@ -39,6 +40,13 @@ const Register = () => {
   const tenants = [
     { id: 'default', name: 'LearnMsDb' },
     { id: 'ngo', name: 'NgoLms' }
+  ]
+
+  // Available roles
+  const roles = [
+    { value: 'student', label: 'Student' },
+    { value: 'instructor', label: 'Instructor' },
+    { value: 'admin', label: 'Admin' }
   ]
 
   const validateForm = () => {
@@ -88,13 +96,17 @@ const Register = () => {
     clearError()
     
     if (validateForm()) {
-      await register(name, email, password, selectedTenant)
+      await register(name, email, password, selectedTenant, role)
     }
   }
 
   const handleTenantChange = (e: SelectChangeEvent) => {
     setSelectedTenant(e.target.value)
     setTenantId(e.target.value)
+  }
+
+  const handleRoleChange = (e: SelectChangeEvent) => {
+    setRole(e.target.value)
   }
 
   return (
@@ -170,6 +182,24 @@ const Register = () => {
                 error={!!formErrors.email}
                 helperText={formErrors.email}
               />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel id="role-select-label">Role</InputLabel>
+                <Select
+                  labelId="role-select-label"
+                  id="role-select"
+                  value={role}
+                  label="Role"
+                  onChange={handleRoleChange}
+                >
+                  {roles.map((role) => (
+                    <MenuItem key={role.value} value={role.value}>
+                      {role.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <TextField

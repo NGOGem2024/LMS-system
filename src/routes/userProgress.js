@@ -1,5 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const {
+  getUserProgress,
+  getCourseProgress,
+  updateProgress,
+  markContentCompleted,
+  getProgressStats
+} = require('../controllers/userProgressController');
 
 // Import middleware
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -14,22 +21,12 @@ router.use(tenantMiddleware);
 // @route   GET /api/progress
 // @desc    Get progress for current user
 // @access  Private
-router.get('/', protect, (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Get progress for current user - Route stub'
-  });
-});
+router.get('/', protect, getUserProgress);
 
 // @route   GET /api/progress/courses/:courseId
 // @desc    Get progress for a specific course
 // @access  Private
-router.get('/courses/:courseId', protect, (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: `Get progress for course ${req.params.courseId} - Route stub`
-  });
-});
+router.get('/courses/:courseId', protect, getCourseProgress);
 
 // @route   POST /api/progress/courses/:courseId
 // @desc    Enroll in a course
@@ -41,25 +38,20 @@ router.post('/courses/:courseId', protect, (req, res) => {
   });
 });
 
-// @route   PUT /api/progress/courses/:courseId/modules/:moduleId
-// @desc    Update module progress
+// @route   PUT /api/progress/:courseId
+// @desc    Update course progress
 // @access  Private
-router.put('/courses/:courseId/modules/:moduleId', protect, (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: `Update progress for module ${req.params.moduleId} in course ${req.params.courseId} - Route stub`
-  });
-});
+router.put('/:courseId', protect, updateProgress);
 
-// @route   PUT /api/progress/courses/:courseId/modules/:moduleId/lessons/:lessonId
-// @desc    Mark lesson as completed
+// @route   POST /api/progress/:courseId/modules/:moduleId/content/:contentId/complete
+// @desc    Mark content as completed
 // @access  Private
-router.put('/courses/:courseId/modules/:moduleId/lessons/:lessonId', protect, (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: `Mark lesson ${req.params.lessonId} as completed - Route stub`
-  });
-});
+router.post('/:courseId/modules/:moduleId/content/:contentId/complete', protect, markContentCompleted);
+
+// @route   GET /api/progress/stats
+// @desc    Get user progress statistics
+// @access  Private
+router.get('/stats', protect, getProgressStats);
 
 // @route   GET /api/progress/admin/courses/:courseId
 // @desc    Get progress for all users in a course

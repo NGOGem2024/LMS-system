@@ -44,6 +44,7 @@ interface ProfileData {
   enrolledCourses: number
   completedCourses: number
   achievements: Achievement[]
+  avatar?: string
 }
 
 interface Achievement {
@@ -64,12 +65,15 @@ const Profile = () => {
   // Form state
   const [name, setName] = useState('')
   const [bio, setBio] = useState('')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [formErrors, setFormErrors] = useState<{
     name?: string
     bio?: string
+    avatar?: string
     currentPassword?: string
     newPassword?: string
     confirmPassword?: string
@@ -158,10 +162,21 @@ const Profile = () => {
     setSuccess(null)
     
     try {
-      await axios.put('/api/users/profile', {
-        name,
-        bio
-      })
+      // Create form data for multipart/form-data request (for file upload)
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('bio', bio || '');
+      
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+      
+      // Use multipart/form-data request
+      await axios.put('/api/users/profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       
       setSuccess('Profile updated successfully!')
       
@@ -170,12 +185,51 @@ const Profile = () => {
         setProfileData({
           ...profileData,
           name,
-          bio
+          bio,
+          avatar: avatarPreview || profileData.avatar
         })
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update profile. Please try again.')
       console.error(err)
+    }
+  }
+  
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setFormErrors(prev => ({
+          ...prev,
+          avatar: 'Please select an image file'
+        }));
+        return;
+      }
+      
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setFormErrors(prev => ({
+          ...prev,
+          avatar: 'Image size should be less than 2MB'
+        }));
+        return;
+      }
+      
+      setAvatarFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      
+      // Clear any previous errors
+      setFormErrors(prev => ({
+        ...prev,
+        avatar: undefined
+      }));
     }
   }
 
@@ -252,6 +306,7 @@ const Profile = () => {
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Avatar
+              src={avatarPreview || profileData.avatar}
               sx={{
                 width: 100,
                 height: 100,
@@ -360,6 +415,45 @@ const Profile = () => {
             </Box>
             
             <Box component="form" onSubmit={handleProfileUpdate} noValidate>
+              <Box sx={{ mb: 3, textAlign: 'center' }}>
+                <input
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  id="avatar-upload"
+                  type="file"
+                  onChange={handleAvatarChange}
+                />
+                <label htmlFor="avatar-upload">
+                  <Avatar
+                    src={avatarPreview || profileData.avatar}
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      mx: 'auto',
+                      mb: 1,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        opacity: 0.8,
+                      },
+                    }}
+                  >
+                    {profileData.name.charAt(0)}
+                  </Avatar>
+                  <Button
+                    component="span"
+                    variant="outlined"
+                    size="small"
+                  >
+                    Upload Photo
+                  </Button>
+                </label>
+                {formErrors.avatar && (
+                  <Typography color="error" variant="caption" display="block" sx={{ mt: 1 }}>
+                    {formErrors.avatar}
+                  </Typography>
+                )}
+              </Box>
+              
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <TextField
