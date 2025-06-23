@@ -16,14 +16,14 @@ import Dashboard from './components/dashboard/Dashboard'
 
 // Course components
 import Courses from './components/courses/Courses'
-// import CourseDetails from './components/courses/CourseDetails'
+import CourseDetails from './components/courses/CourseDetails'
 import AddCourse from './components/courses/AddCourse'
 
 // Assignment components
 import Assignments from './components/assignments/Assignments'
 import AssignmentDetails from './components/assignments/AssignmentDetails'
 import SubmitAssignment from './components/assignments/SubmitAssignment'
-// import CreateAssignment from './components/assignments/CreateAssignment'
+import CreateAssignment from './components/assignments/CreateAssignment'
 
 // Quiz components
 import Quizzes from './components/quizzes/Quizzes'
@@ -112,9 +112,9 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="courses" element={<Courses />} />
             <Route path="courses/add" element={<AddCourse />} />
-            {/* <Route path="courses/:id" element={<CourseDetails />} /> */}
+            <Route path="courses/:id" element={<CourseDetails />} />
             <Route path="assignments" element={<Assignments />} />
-            {/* <Route path="assignments/create" element={<CreateAssignment />} /> */}
+            <Route path="assignments/create" element={<CreateAssignment />} />
             <Route path="assignments/:id" element={<AssignmentDetails />} />
             <Route path="assignments/:id/submit" element={<SubmitAssignment />} />
             <Route path="quizzes" element={<Quizzes />} />
