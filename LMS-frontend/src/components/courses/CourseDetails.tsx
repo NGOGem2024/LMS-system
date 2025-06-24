@@ -21,7 +21,8 @@ import {
   LinearProgress,
   Alert,
   Chip,
-  Avatar
+  Avatar,
+  Skeleton
 } from '@mui/material'
 import {
   Description as ContentIcon,
@@ -36,6 +37,11 @@ import {
 } from '@mui/icons-material'
 import axios from 'axios'
 import ModuleManager from './ModuleManager'
+import { 
+  PageLoading, 
+  ContentPlaceholder, 
+  AssignmentListSkeleton 
+} from '../ui/LoadingComponents'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -208,7 +214,37 @@ const CourseDetails = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <LinearProgress />
+        <PageLoading />
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={8}>
+                  <ContentPlaceholder lines={1} />
+                  <Box sx={{ my: 2 }}>
+                    <ContentPlaceholder lines={3} />
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                    <Skeleton variant="rectangular" width={80} height={32} />
+                    <Skeleton variant="rectangular" width={100} height={32} />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Skeleton variant="rectangular" height={200} width="100%" />
+                </Grid>
+              </Grid>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Paper sx={{ mb: 3 }}>
+              <Skeleton variant="rectangular" height={48} width="100%" />
+              <Box sx={{ p: 3 }}>
+                <AssignmentListSkeleton count={3} />
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
       </Container>
     )
   }

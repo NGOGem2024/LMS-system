@@ -27,6 +27,8 @@ import {
 } from '@mui/icons-material'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
+import { useLoading } from '../../context/LoadingContext'
+import { CourseGridSkeleton } from '../ui/LoadingComponents'
 
 interface Quiz {
   _id: string
@@ -48,6 +50,8 @@ interface Quiz {
   createdAt: string
   attemptsCount?: number
   canAttempt?: boolean
+  attempts?: number
+  lastScore?: number
 }
 
 const Quizzes = () => {

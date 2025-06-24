@@ -33,12 +33,12 @@ const getConnectionForTenant = async (tenantId) => {
     const existingConnection = tenantConnections.get(tenantId);
     
     // If connection is open (readyState 1), reuse it
-    if (existingConnection.readyState === 1) {
+    if (existingConnection && existingConnection.readyState === 1) {
       console.log(`Reusing existing connection for tenant: ${tenantId}`);
       return existingConnection;
     } 
     // If connection is connecting (readyState 2), wait for it
-    else if (existingConnection.readyState === 2) {
+    else if (existingConnection && existingConnection.readyState === 2) {
       console.log(`Waiting for existing connection for tenant: ${tenantId}`);
       try {
         // Wait for the connection to be established
@@ -68,7 +68,7 @@ const getConnectionForTenant = async (tenantId) => {
     }
     // If connection is closed, disconnected, or disconnecting, remove it from the map
     else {
-      console.log(`Removing stale connection for tenant: ${tenantId}, state: ${existingConnection.readyState}`);
+      console.log(`Removing stale connection for tenant: ${tenantId}, state: ${existingConnection ? existingConnection.readyState : 'null'}`);
       tenantConnections.delete(tenantId);
     }
   }
@@ -78,6 +78,11 @@ const getConnectionForTenant = async (tenantId) => {
   
   try {
     const connection = await getTenantConnection(tenantId);
+    
+    if (!connection || connection.readyState !== 1) {
+      console.error(`Failed to establish valid connection for tenant ${tenantId}, readyState: ${connection ? connection.readyState : 'null'}`);
+      throw new Error('Failed to establish database connection');
+    }
     
     // Store the connection in the map
     tenantConnections.set(tenantId, connection);
@@ -97,9 +102,19 @@ const getConnectionForTenant = async (tenantId) => {
       });
     }
     
-    // Register models for this connection
-    const { getModels } = require('../models');
-    getModels(connection);
+    // Register models for this connection - only register if they don't already exist
+    if (Object.keys(connection.models || {}).length === 0) {
+      try {
+        const { getModels } = require('../models');
+        const models = getModels(connection);
+        console.log(`Models registered for tenant ${tenantId}: ${Object.keys(models).length}`);
+      } catch (modelErr) {
+        console.error(`Error registering models for tenant ${tenantId}: ${modelErr.message}`);
+        // Continue even if model registration fails, might work with existing models
+      }
+    } else {
+      console.log(`Connection already has ${Object.keys(connection.models).length} models registered`);
+    }
     
     return connection;
   } catch (err) {

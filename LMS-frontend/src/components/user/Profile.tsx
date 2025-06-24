@@ -22,7 +22,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Chip
+  Chip,
+  Skeleton
 } from '@mui/material'
 import {
   Person as PersonIcon,
@@ -34,6 +35,12 @@ import {
 } from '@mui/icons-material'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
+import { 
+  PageLoading, 
+  ProfileSkeleton, 
+  LoadingButton, 
+  ContentPlaceholder 
+} from '../ui/LoadingComponents'
 
 interface ProfileData {
   name: string
@@ -61,6 +68,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
   
   // Form state
   const [name, setName] = useState('')
@@ -175,6 +184,7 @@ const Profile = () => {
     
     setError(null)
     setSuccess(null)
+    setIsSaving(true)
     
     try {
       // Create form data for multipart/form-data request (for file upload)
@@ -219,6 +229,8 @@ const Profile = () => {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update profile. Please try again.')
       console.error(err)
+    } finally {
+      setIsSaving(false)
     }
   }
   
@@ -269,6 +281,7 @@ const Profile = () => {
     
     setError(null)
     setSuccess(null)
+    setIsChangingPassword(true)
     
     try {
       await axios.put('/api/users/password', {
@@ -289,6 +302,8 @@ const Profile = () => {
         currentPassword: err.response?.data?.message || 'Failed to update password. Please try again.'
       }))
       console.error(err)
+    } finally {
+      setIsChangingPassword(false)
     }
   }
 
@@ -312,7 +327,70 @@ const Profile = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <LinearProgress />
+        <PageLoading />
+        <Typography variant="h4" sx={{ mb: 4, opacity: 0.7 }}>
+          Profile
+        </Typography>
+        
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3 }}>
+              <ProfileSkeleton />
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h5" sx={{ mb: 3, opacity: 0.7 }}>
+                Personal Information
+              </Typography>
+              <Box sx={{ mb: 4 }}>
+                <ContentPlaceholder lines={5} />
+              </Box>
+            </Paper>
+            
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h5" sx={{ mb: 3, opacity: 0.7 }}>
+                Stats & Achievements
+              </Typography>
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={6}>
+                  <Card>
+                    <CardContent>
+                      <Skeleton variant="text" height={24} width="60%" />
+                      <Skeleton variant="text" height={40} width="40%" />
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={6}>
+                  <Card>
+                    <CardContent>
+                      <Skeleton variant="text" height={24} width="60%" />
+                      <Skeleton variant="text" height={40} width="40%" />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+              
+              <Typography variant="h6" sx={{ mb: 2, opacity: 0.7 }}>
+                Achievements
+              </Typography>
+              <List>
+                {[1, 2, 3].map((_, index) => (
+                  <ListItem key={index} sx={{ borderBottom: '1px solid', borderColor: 'divider', py: 2 }}>
+                    <ListItemIcon>
+                      <Skeleton variant="circular" width={40} height={40} />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={<Skeleton variant="text" width="70%" />} 
+                      secondary={<Skeleton variant="text" width="90%" />} 
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          </Grid>
+        </Grid>
       </Container>
     )
   }
@@ -553,13 +631,16 @@ const Profile = () => {
               </Grid>
               
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  startIcon={<SaveIcon />}
-                >
-                  Save Changes
-                </Button>
+                <LoadingButton loading={isSaving}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </LoadingButton>
               </Box>
             </Box>
           </Paper>
@@ -634,8 +715,12 @@ const Profile = () => {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setPasswordDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained">Update Password</Button>
+            <Button onClick={() => setPasswordDialogOpen(false)} disabled={isChangingPassword}>Cancel</Button>
+            <LoadingButton loading={isChangingPassword}>
+              <Button type="submit" variant="contained" disabled={isChangingPassword}>
+                {isChangingPassword ? 'Updating...' : 'Update Password'}
+              </Button>
+            </LoadingButton>
           </DialogActions>
         </Box>
       </Dialog>

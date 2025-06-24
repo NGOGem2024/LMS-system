@@ -12,7 +12,6 @@ import {
   CardActions,
   Button,
   Chip,
-  LinearProgress,
   Alert,
   Tabs,
   Tab,
@@ -23,7 +22,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  LinearProgress,
+  Skeleton
 } from '@mui/material'
 import {
   Assignment as AssignmentIcon,
@@ -33,6 +34,11 @@ import {
   Warning as OverdueIcon
 } from '@mui/icons-material'
 import axios from 'axios'
+import { 
+  PageLoading, 
+  AssignmentListSkeleton,
+  TableSkeleton
+} from '../ui/LoadingComponents'
 
 interface Assignment {
   _id: string
@@ -155,7 +161,38 @@ const Assignments = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <LinearProgress />
+        <PageLoading />
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+          <AssignmentIcon sx={{ mr: 1, opacity: 0.5 }} fontSize="large" color="primary" />
+          <Typography variant="h4" component="h1" sx={{ opacity: 0.5 }}>
+            Assignments
+          </Typography>
+        </Box>
+        
+        <Paper sx={{ mb: 4 }}>
+          <Tabs
+            value={0}
+            indicatorColor="primary"
+            textColor="primary"
+            variant="fullWidth"
+          >
+            <Tab label="All" />
+            <Tab label="Pending" />
+            <Tab label="Completed" />
+            <Tab label="Overdue" />
+          </Tabs>
+        </Paper>
+        
+        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="rectangular" height={56} width="100%" animation="wave" />
+          </Box>
+          <Box sx={{ width: 200 }}>
+            <Skeleton variant="rectangular" height={56} width="100%" animation="wave" />
+          </Box>
+        </Box>
+        
+        <TableSkeleton rows={5} cols={3} />
       </Container>
     )
   }

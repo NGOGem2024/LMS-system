@@ -114,11 +114,26 @@ exports.login = async (req, res) => {
 
     console.log(`Attempting login for email: ${email} in tenant: ${tenantId}`);
     
-    // Get tenant connection
+    // Get tenant connection - ensure we're using the same connection throughout
     const connection = await getConnectionForTenant(tenantId);
     
-    // Get User model for this tenant
-    const User = getModel(connection, 'User');
+    // Use the connection's User model if it exists, otherwise get it
+    let User;
+    if (connection.models.User) {
+      User = connection.models.User;
+    } else {
+      try {
+        // Get User model for this tenant using the getModel utility
+        const { getModel } = require('../models');
+        User = getModel(connection, 'User');
+      } catch (modelErr) {
+        console.error(`Error getting User model: ${modelErr.message}`);
+        return res.status(500).json({
+          success: false,
+          error: 'Server Error - User model unavailable'
+        });
+      }
+    }
 
     // Check for user
     const user = await User.findOne({ email, tenantId }).select('+password');

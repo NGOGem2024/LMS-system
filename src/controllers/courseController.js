@@ -5,108 +5,47 @@ const Course = require('../models/Course');
 // @access  Private
 exports.getCourses = async (req, res) => {
   try {
+    console.log(`GetCourses: Tenant ID = ${req.tenantId}, User ID = ${req.user ? req.user.id : 'Not authenticated'}`);
+    
     // Make sure we have a tenant connection
-    if (!req.tenantConnection || req.tenantConnection.readyState !== 1) {
-      console.error(`No valid tenant connection available`);
+    if (!req.tenantConnection) {
+      console.error(`GetCourses: No tenant connection available for tenant: ${req.tenantId}`);
       return res.status(503).json({
         success: false,
         error: 'Database connection not available. Please try again later.'
       });
     }
 
-    // Use connection from request
-    const CourseModel = req.tenantConnection.model('Course');
-
-    let query;
-
-    // Copy req.query
-    const reqQuery = { ...req.query };
-
-    // Fields to exclude
-    const removeFields = ['select', 'sort', 'page', 'limit'];
-
-    // Loop over removeFields and delete them from reqQuery
-    removeFields.forEach(param => delete reqQuery[param]);
-
-    // Add tenant filter from middleware
-    reqQuery.tenantId = req.tenantId;
-
-    // Create query string
-    let queryStr = JSON.stringify(reqQuery);
-
-    // Create operators ($gt, $gte, etc)
-    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
-
-    // Set up timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Database operation timed out')), 15000);
-    });
-
-    // Get total count with timeout
-    const countPromise = CourseModel.countDocuments(JSON.parse(queryStr)).exec();
-    let total;
-    try {
-      total = await Promise.race([countPromise, timeoutPromise]);
-    } catch (err) {
-      console.error(`Count operation timed out: ${err.message}`);
-      total = 0; // Default to 0 if count times out
-    }
-
-    // Pagination
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-
-    // Finding resource
-    query = CourseModel.find(JSON.parse(queryStr));
-
-    // Select Fields
-    if (req.query.select) {
-      const fields = req.query.select.split(',').join(' ');
-      query = query.select(fields);
-    }
-
-    // Sort
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-    } else {
-      query = query.sort('-createdAt');
-    }
-
-    query = query.skip(startIndex).limit(limit);
-
-    // Populate
-    if (req.query.populate) {
-      const populateFields = req.query.populate.split(',');
-      populateFields.forEach(field => {
-        query = query.populate(field);
+    if (req.tenantConnection.readyState !== 1) {
+      console.error(`GetCourses: Connection not ready for tenant: ${req.tenantId}, readyState: ${req.tenantConnection.readyState}`);
+      return res.status(503).json({
+        success: false,
+        error: 'Database connection not ready. Please try again later.'
       });
     }
 
-    // Log query for debugging
-    console.log(`Executing course query: ${query.getFilter()}`);
+    // Get Course model from tenant connection
+    const CourseModel = req.tenantConnection.model('Course');
+    console.log(`GetCourses: Got Course model for tenant: ${req.tenantId}`);
 
-    // Executing query with timeout
-    const queryPromise = query.lean().exec();
-    let courses;
+    // Simple query to get all courses for this tenant
     try {
-      courses = await Promise.race([queryPromise, timeoutPromise]);
-      console.log(`Found ${courses.length} courses for tenant: ${req.tenantId}`);
-    } catch (err) {
-      console.error(`Query execution error: ${err.message}`);
-      if (err.message === 'Database operation timed out') {
-        return res.status(504).json({
-          success: false,
-          error: 'Database operation timed out. Please try again later.'
-        });
-      }
-      throw err;
+      const courses = await CourseModel.find({ tenantId: req.tenantId })
+        .populate('instructor', 'name email')
+        .sort('-createdAt')
+        .lean();
+      
+      console.log(`GetCourses: Found ${courses.length} courses for tenant: ${req.tenantId}`);
+      
+      // Return courses directly as an array
+      return res.status(200).json(courses);
+    } catch (queryErr) {
+      console.error(`GetCourses: Query execution error: ${queryErr.message}`);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve courses. Please try again later.'
+      });
     }
-
-    // Format the response to match what the frontend expects - an array directly
-    res.status(200).json(courses);
   } catch (err) {
     console.error(`Error in getCourses: ${err.message}`);
     console.error(`Stack: ${err.stack}`);
@@ -122,24 +61,51 @@ exports.getCourses = async (req, res) => {
 // @access  Private
 exports.getCourse = async (req, res) => {
   try {
-    const course = await Course.findOne({
+    console.log(`GetCourse: Retrieving course with ID: ${req.params.id} for tenant: ${req.tenantId}`);
+    
+    // Make sure we have a tenant connection
+    if (!req.tenantConnection) {
+      console.error(`GetCourse: No tenant connection available for tenant: ${req.tenantId}`);
+      return res.status(503).json({
+        success: false,
+        error: 'Database connection not available. Please try again later.'
+      });
+    }
+
+    if (req.tenantConnection.readyState !== 1) {
+      console.error(`GetCourse: Connection not ready for tenant: ${req.tenantId}, readyState: ${req.tenantConnection.readyState}`);
+      return res.status(503).json({
+        success: false,
+        error: 'Database connection not ready. Please try again later.'
+      });
+    }
+
+    // Get Course model from tenant connection
+    const CourseModel = req.tenantConnection.model('Course');
+    console.log(`GetCourse: Got Course model for tenant: ${req.tenantId}`);
+    
+    // Find the course
+    const course = await CourseModel.findOne({
       _id: req.params.id,
       tenantId: req.tenantId
     }).populate('instructor', 'name email');
 
     if (!course) {
+      console.error(`GetCourse: Course not found with ID: ${req.params.id}`);
       return res.status(404).json({
         success: false,
         error: 'Course not found'
       });
     }
 
+    console.log(`GetCourse: Successfully retrieved course: ${course._id}`);
     res.status(200).json({
       success: true,
       data: course
     });
   } catch (err) {
     console.error(`Error in getCourse: ${err.message}`);
+    console.error(`Stack: ${err.stack}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'

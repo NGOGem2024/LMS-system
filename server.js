@@ -118,12 +118,23 @@ const startServer = async () => {
   try {
     // Connect to default MongoDB database and wait for connection
     const connection = await connectDB('default');
+    
+    if (!connection || connection.readyState !== 1) {
+      console.error(`Failed to establish default database connection, readyState: ${connection ? connection.readyState : 'null'}`);
+      throw new Error('Failed to establish database connection');
+    }
+    
     console.log('Default database connection established');
     
     // Load all models from the models directory
-    const { getModels } = require('./src/models');
-    const models = getModels(connection);
-    console.log('All models registered for default connection');
+    try {
+      const { getModels } = require('./src/models');
+      const models = getModels(connection);
+      console.log(`All models registered for default connection: ${Object.keys(models).length} models`);
+    } catch (modelErr) {
+      console.error(`Error registering models: ${modelErr.message}`);
+      console.error(`This may cause issues with database operations`);
+    }
     
     // Start server only after DB connection is established
     const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
@@ -131,11 +142,13 @@ const startServer = async () => {
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (err, promise) => {
       console.log(`Error: ${err.message}`);
+      console.log(`Stack: ${err.stack}`);
       // Close server & exit process
       server.close(() => process.exit(1));
     });
   } catch (err) {
     console.error(`Failed to start server: ${err.message}`);
+    console.error(`Stack: ${err.stack}`);
     process.exit(1);
   }
 };

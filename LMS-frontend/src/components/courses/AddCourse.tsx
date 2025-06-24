@@ -85,10 +85,25 @@ const AddCourse = () => {
       const response = await axios.post('/api/courses/simple', formData, config);
       console.log('Course creation response:', response.data);
       
+      // Set success state
       setSuccess('Course created successfully!');
-      setTimeout(() => {
-        navigate('/courses');
-      }, 2000);
+      
+      // Wait for the database to process the new course
+      // Then try to verify the course exists before navigating
+      setTimeout(async () => {
+        try {
+          // Verify the course is accessible by trying to fetch it
+          const verifyResponse = await axios.get(`/api/courses/${response.data.data._id}`, config);
+          console.log('Course verification response:', verifyResponse.data);
+          
+                     // Course exists and is accessible, navigate to courses with query param
+           navigate('/courses?newCourse=true');
+         } catch (verifyErr) {
+           console.warn('Could not verify course, but will navigate anyway:', verifyErr);
+           // Navigate to courses even if verification fails
+           navigate('/courses?newCourse=true');
+        }
+      }, 3000); // Give more time (3 seconds) for the database to process the new course
     } catch (err: any) {
       console.error('Course creation error:', err);
       

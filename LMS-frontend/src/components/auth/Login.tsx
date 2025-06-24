@@ -15,12 +15,12 @@ import {
   FormControl,
   InputLabel,
   Select,
-  SelectChangeEvent,
-  CircularProgress
+  SelectChangeEvent
 } from '@mui/material'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import AuthContext from '../../context/AuthContext'
 import axios from 'axios'
+import { LoadingButton } from '../ui/LoadingComponents'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -189,15 +189,17 @@ const Login = () => {
             error={!!formErrors.password}
             helperText={formErrors.password}
           />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? <CircularProgress size={24} /> : 'Sign In'}
-          </Button>
+          <LoadingButton loading={isSubmitting}>
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, mb: 2 }}
+              disabled={isSubmitting}
+            >
+              Sign In
+            </Button>
+          </LoadingButton>
           <Grid container>
             <Grid item xs>
               <Link component={RouterLink} to="/forgot-password" variant="body2">

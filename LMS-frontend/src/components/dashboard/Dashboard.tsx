@@ -14,9 +14,9 @@ import {
   List,
   ListItem,
   ListItemText,
-  LinearProgress,
   Alert,
-  Link
+  Link,
+  LinearProgress
 } from '@mui/material'
 import {
   School as CourseIcon,
@@ -28,6 +28,11 @@ import {
 } from '@mui/icons-material'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
+import { 
+  DashboardCardSkeleton, 
+  AssignmentListSkeleton, 
+  PageLoading 
+} from '../ui/LoadingComponents'
 
 interface Course {
   _id: string
@@ -127,7 +132,22 @@ const Dashboard = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <LinearProgress />
+        <PageLoading />
+        <Grid container spacing={3}>
+          {/* Dashboard cards skeleton */}
+          <Grid item xs={12} md={6}>
+            <DashboardCardSkeleton />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <DashboardCardSkeleton />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <DashboardCardSkeleton height={250} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <DashboardCardSkeleton height={250} />
+          </Grid>
+        </Grid>
       </Container>
     )
   }
