@@ -7,7 +7,9 @@ const {
   deleteUser,
   changeUserRole,
   getInstructors,
-  getStudents
+  getStudents,
+  getUserProfile,
+  updateUserProfile
 } = require('../controllers/userController');
 
 // Import middleware
@@ -16,6 +18,10 @@ const tenantMiddleware = require('../middleware/tenantMiddleware');
 
 // Apply tenant middleware to all routes
 router.use(tenantMiddleware);
+
+// Profile route - accessible to all authenticated users
+router.get('/profile', protect, getUserProfile);
+router.put('/profile', protect, updateUserProfile);
 
 // Special routes
 router.get('/instructors', protect, getInstructors);

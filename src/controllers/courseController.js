@@ -5,6 +5,18 @@ const Course = require('../models/Course');
 // @access  Private
 exports.getCourses = async (req, res) => {
   try {
+    // Make sure we have a tenant connection
+    if (!req.tenantConnection || req.tenantConnection.readyState !== 1) {
+      console.error(`No valid tenant connection available`);
+      return res.status(503).json({
+        success: false,
+        error: 'Database connection not available. Please try again later.'
+      });
+    }
+
+    // Use connection from request
+    const CourseModel = req.tenantConnection.model('Course');
+
     let query;
 
     // Copy req.query
@@ -25,8 +37,29 @@ exports.getCourses = async (req, res) => {
     // Create operators ($gt, $gte, etc)
     queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
 
+    // Set up timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database operation timed out')), 15000);
+    });
+
+    // Get total count with timeout
+    const countPromise = CourseModel.countDocuments(JSON.parse(queryStr)).exec();
+    let total;
+    try {
+      total = await Promise.race([countPromise, timeoutPromise]);
+    } catch (err) {
+      console.error(`Count operation timed out: ${err.message}`);
+      total = 0; // Default to 0 if count times out
+    }
+
+    // Pagination
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
     // Finding resource
-    query = Course.find(JSON.parse(queryStr));
+    query = CourseModel.find(JSON.parse(queryStr));
 
     // Select Fields
     if (req.query.select) {
@@ -42,13 +75,6 @@ exports.getCourses = async (req, res) => {
       query = query.sort('-createdAt');
     }
 
-    // Pagination
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    const total = await Course.countDocuments(JSON.parse(queryStr));
-
     query = query.skip(startIndex).limit(limit);
 
     // Populate
@@ -59,13 +85,31 @@ exports.getCourses = async (req, res) => {
       });
     }
 
-    // Executing query
-    const courses = await query;
+    // Log query for debugging
+    console.log(`Executing course query: ${query.getFilter()}`);
+
+    // Executing query with timeout
+    const queryPromise = query.lean().exec();
+    let courses;
+    try {
+      courses = await Promise.race([queryPromise, timeoutPromise]);
+      console.log(`Found ${courses.length} courses for tenant: ${req.tenantId}`);
+    } catch (err) {
+      console.error(`Query execution error: ${err.message}`);
+      if (err.message === 'Database operation timed out') {
+        return res.status(504).json({
+          success: false,
+          error: 'Database operation timed out. Please try again later.'
+        });
+      }
+      throw err;
+    }
 
     // Format the response to match what the frontend expects - an array directly
     res.status(200).json(courses);
   } catch (err) {
     console.error(`Error in getCourses: ${err.message}`);
+    console.error(`Stack: ${err.stack}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -275,28 +319,81 @@ exports.deleteCourse = async (req, res) => {
 // @access  Private
 exports.getEnrolledCourses = async (req, res) => {
   try {
-    // Find user progress records for the current user
-    const UserProgress = require('../models/UserProgress');
+    // Make sure we have a tenant connection
+    if (!req.tenantConnection || req.tenantConnection.readyState !== 1) {
+      console.error(`No valid tenant connection available`);
+      return res.status(503).json({
+        success: false,
+        error: 'Database connection not available. Please try again later.'
+      });
+    }
+
+    // Use models from the tenant connection
+    const CourseModel = req.tenantConnection.model('Course');
+    const UserProgressModel = req.tenantConnection.model('UserProgress');
+    
+    // Set up timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database operation timed out')), 15000);
+    });
+    
+    console.log(`Fetching enrolled courses for user: ${req.user.id} and tenant: ${req.tenantId}`);
     
     // Get course IDs from user progress
-    const userProgress = await UserProgress.find({
+    const progressPromise = UserProgressModel.find({
       user: req.user.id,
       tenantId: req.tenantId
-    }).select('course');
+    }).select('course').lean().exec();
+    
+    let userProgress;
+    try {
+      userProgress = await Promise.race([progressPromise, timeoutPromise]);
+      console.log(`Found ${userProgress.length} progress records for user`);
+    } catch (err) {
+      console.error(`Error fetching user progress: ${err.message}`);
+      if (err.message === 'Database operation timed out') {
+        return res.status(504).json({
+          success: false,
+          error: 'Database operation timed out. Please try again later.'
+        });
+      }
+      throw err;
+    }
     
     // Extract course IDs
     const courseIds = userProgress.map(progress => progress.course);
     
+    if (courseIds.length === 0) {
+      console.log(`No enrolled courses found for user: ${req.user.id}`);
+      return res.status(200).json([]);
+    }
+    
     // Find courses with those IDs
-    const courses = await Course.find({
+    const coursesPromise = CourseModel.find({
       _id: { $in: courseIds },
       tenantId: req.tenantId
-    }).populate('instructor', 'name email');
+    }).populate('instructor', 'name email').lean().exec();
+    
+    let courses;
+    try {
+      courses = await Promise.race([coursesPromise, timeoutPromise]);
+      console.log(`Found ${courses.length} enrolled courses`);
+    } catch (err) {
+      console.error(`Error fetching enrolled courses: ${err.message}`);
+      if (err.message === 'Database operation timed out') {
+        return res.status(504).json({
+          success: false,
+          error: 'Database operation timed out. Please try again later.'
+        });
+      }
+      throw err;
+    }
     
     // Format the response to match what the frontend expects - an array directly
     res.status(200).json(courses);
   } catch (err) {
     console.error(`Error in getEnrolledCourses: ${err.message}`);
+    console.error(`Stack: ${err.stack}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'

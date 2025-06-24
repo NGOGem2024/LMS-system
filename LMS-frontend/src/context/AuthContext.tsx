@@ -8,6 +8,10 @@ interface User {
   email: string
   role: string
   tenantId: string
+  profile?: {
+    avatar?: string
+    bio?: string
+  }
 }
 
 interface AuthContextType {
@@ -22,6 +26,7 @@ interface AuthContextType {
   error: string | null
   clearError: () => void
   setTenantId: (id: string) => void
+  updateUser: (userData: Partial<User>) => void
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -36,6 +41,7 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
   clearError: () => {},
   setTenantId: () => {},
+  updateUser: () => {},
 })
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -48,23 +54,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const navigate = useNavigate()
 
-  // Set auth token and tenant for axios requests
+  // Set tenant ID in localStorage when it changes
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      console.log('Setting Authorization header:', `Bearer ${token}`);
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      console.log('Removing Authorization header');
-    }
-    
-    // Set tenant ID header
     if (tenantId) {
-      axios.defaults.headers.common['X-Tenant-ID'] = tenantId;
       localStorage.setItem('tenantId', tenantId);
-      console.log('Setting X-Tenant-ID header:', tenantId);
+      console.log('Setting tenant ID in localStorage:', tenantId);
     }
-  }, [token, tenantId])
+  }, [tenantId])
 
   // Load user if token exists
   useEffect(() => {
@@ -75,15 +71,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
+        // Get the user profile which includes profile information like avatar
         const res = await axios.get('/api/auth/me')
+        
+        // Set complete user data with profile information
         setUser(res.data.data)
         setIsAuthenticated(true)
+        
+        // Update localStorage with the latest user data
+        localStorage.setItem('user', JSON.stringify(res.data.data))
+        
+        console.log('Loaded user with profile:', res.data.data)
       } catch (err) {
-        localStorage.removeItem('token')
-        setToken(null)
-        setUser(null)
-        setIsAuthenticated(false)
-        setError('Authentication failed. Please login again.')
+        console.error('Failed to load user from API:', err)
+        
+        // Try to get user from localStorage as fallback
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser)
+            console.log('Loaded user from localStorage:', parsedUser)
+            setUser(parsedUser)
+            setIsAuthenticated(true)
+          } catch (parseErr) {
+            console.error('Failed to parse stored user data:', parseErr)
+            localStorage.removeItem('user')
+            localStorage.removeItem('token')
+            setToken(null)
+            setUser(null)
+            setIsAuthenticated(false)
+            setError('Authentication failed. Please login again.')
+          }
+        } else {
+          localStorage.removeItem('token')
+          setToken(null)
+          setUser(null)
+          setIsAuthenticated(false)
+          setError('Authentication failed. Please login again.')
+        }
       }
       
       setIsLoading(false)
@@ -97,20 +122,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Use provided tenant ID or fallback to current tenant ID
       const currentTenantId = loginTenantId || tenantId
       
-      // Set tenant ID header for this request
-      axios.defaults.headers.common['X-Tenant-ID'] = currentTenantId
+      // Update tenant ID in context and localStorage
+      if (loginTenantId) {
+        setTenantId(loginTenantId)
+      }
       
       const res = await axios.post('/api/auth/login', { email, password })
+      
+      // Store token in localStorage
       localStorage.setItem('token', res.data.token)
+      
+      // Store the complete user object for persistence across sessions
+      localStorage.setItem('user', JSON.stringify(res.data.user))
+      
       setToken(res.data.token)
       setUser(res.data.user)
       
       // Update tenant ID if it came from user data
       if (res.data.user && res.data.user.tenantId) {
         setTenantId(res.data.user.tenantId)
-      } else if (loginTenantId) {
-        // Otherwise use the provided tenant ID
-        setTenantId(loginTenantId)
       }
       
       setIsAuthenticated(true)
@@ -126,8 +156,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Use provided tenant ID or fallback to current tenant ID
       const currentTenantId = registerTenantId || tenantId
       
-      // Set tenant ID header for this request
-      axios.defaults.headers.common['X-Tenant-ID'] = currentTenantId
+      // Update tenant ID in context and localStorage
+      if (registerTenantId) {
+        setTenantId(registerTenantId)
+      }
       
       // Add role to registration data if provided
       const registrationData = { name, email, password, role: role || 'student' }
@@ -140,9 +172,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Update tenant ID if it came from user data
       if (res.data.user && res.data.user.tenantId) {
         setTenantId(res.data.user.tenantId)
-      } else if (registerTenantId) {
-        // Otherwise use the provided tenant ID
-        setTenantId(registerTenantId)
       }
       
       setIsAuthenticated(true)
@@ -155,6 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('user')
     setToken(null)
     setUser(null)
     setIsAuthenticated(false)
@@ -164,6 +194,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const clearError = () => {
     setError(null)
+  }
+
+  // Update user data (e.g., after profile update)
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        ...userData
+      }
+      
+      console.log('Updating user in AuthContext:', updatedUser);
+      console.log('Profile data before update:', user.profile);
+      console.log('Profile data in update:', userData.profile);
+      console.log('Avatar URL:', userData.profile?.avatar);
+      
+      // Update user in state
+      setUser(updatedUser)
+      
+      // Update user in localStorage for persistence
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      
+      console.log('User updated and saved to localStorage:', updatedUser)
+    }
   }
 
   return (
@@ -179,7 +232,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         error,
         clearError,
-        setTenantId
+        setTenantId,
+        updateUser
       }}
     >
       {children}

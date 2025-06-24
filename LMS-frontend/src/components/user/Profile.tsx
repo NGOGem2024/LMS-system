@@ -56,7 +56,7 @@ interface Achievement {
 }
 
 const Profile = () => {
-  const { user } = useContext(AuthContext)
+  const { user, updateUser } = useContext(AuthContext)
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -89,21 +89,36 @@ const Profile = () => {
       
       try {
         const res = await axios.get('/api/users/profile')
-        setProfileData(res.data)
+        // Handle the API response structure which includes data in a nested 'data' property
+        const userData = res.data.data || res.data;
+        
+        // Use avatar from auth context if available (to ensure consistency)
+        const avatarUrl = user?.profile?.avatar || userData.profile?.avatar;
+        
+        setProfileData({
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          bio: userData.profile?.bio || '',
+          avatar: avatarUrl,
+          enrolledCourses: userData.enrolledCourses || 0,
+          completedCourses: userData.completedCourses || 0,
+          achievements: userData.achievements || []
+        });
         
         // Initialize form fields
-        setName(res.data.name)
-        setBio(res.data.bio || '')
+        setName(userData.name)
+        setBio(userData.profile?.bio || '')
       } catch (err: any) {
         setError('Failed to load profile data. Please try again later.')
-        console.error(err)
+        console.error('Profile fetch error:', err)
       } finally {
         setLoading(false)
       }
     }
     
     fetchProfileData()
-  }, [])
+  }, [user])
 
   const validateProfileForm = () => {
     const errors: { name?: string; bio?: string } = {}
@@ -172,9 +187,21 @@ const Profile = () => {
       }
       
       // Use multipart/form-data request
-      await axios.put('/api/users/profile', formData, {
+      const response = await axios.put('/api/users/profile', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // Get the updated user data from the response
+      const updatedUserData = response.data.data;
+      
+      // Update user in auth context to persist the changes
+      updateUser({
+        name: updatedUserData.name,
+        profile: {
+          avatar: updatedUserData.profile?.avatar,
+          bio: updatedUserData.profile?.bio
         }
       });
       
@@ -184,9 +211,9 @@ const Profile = () => {
       if (profileData) {
         setProfileData({
           ...profileData,
-          name,
-          bio,
-          avatar: avatarPreview || profileData.avatar
+          name: updatedUserData.name,
+          bio: updatedUserData.profile?.bio || '',
+          avatar: updatedUserData.profile?.avatar
         })
       }
     } catch (err: any) {
@@ -265,6 +292,23 @@ const Profile = () => {
     }
   }
 
+  // Add a function to get the full image URL
+  const getFullImageUrl = (imagePath: string | undefined) => {
+    if (!imagePath) return undefined;
+    
+    // If it's already a data URL (from preview), return as is
+    if (imagePath.startsWith('data:')) {
+      return imagePath;
+    }
+    
+    // If it's a relative path, use it as is (the proxy will handle it)
+    if (imagePath.startsWith('/')) {
+      return imagePath;
+    }
+    
+    return imagePath;
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -282,6 +326,14 @@ const Profile = () => {
       </Container>
     )
   }
+
+  // Log avatar sources for debugging
+  console.log('Avatar sources:', {
+    preview: avatarPreview,
+    profileData: profileData?.avatar,
+    userProfile: user?.profile?.avatar,
+    baseUrl: window.location.origin
+  });
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -306,7 +358,7 @@ const Profile = () => {
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Avatar
-              src={avatarPreview || profileData.avatar}
+              src={getFullImageUrl(avatarPreview || profileData.avatar || user?.profile?.avatar)}
               sx={{
                 width: 100,
                 height: 100,
@@ -425,7 +477,7 @@ const Profile = () => {
                 />
                 <label htmlFor="avatar-upload">
                   <Avatar
-                    src={avatarPreview || profileData.avatar}
+                    src={getFullImageUrl(avatarPreview || profileData.avatar || user?.profile?.avatar)}
                     sx={{
                       width: 100,
                       height: 100,

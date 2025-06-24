@@ -137,16 +137,22 @@ exports.login = async (req, res) => {
     // Generate token
     const token = user.getSignedJwtToken();
 
+    // Create a user object with all necessary fields including complete profile
+    const userResponse = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+      profile: user.profile || {} // Ensure profile is included even if null
+    };
+
+    console.log('Login successful. User data with profile:', userResponse);
+
     res.status(200).json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        tenantId: user.tenantId
-      }
+      user: userResponse
     });
   } catch (err) {
     console.error(`Error in login: ${err.message}`);

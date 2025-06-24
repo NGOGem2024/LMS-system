@@ -32,6 +32,19 @@ import {
 } from '@mui/icons-material'
 import AuthContext from '../../context/AuthContext'
 
+// Define interface for User with profile
+interface User {
+  _id: string
+  name: string
+  email: string
+  role: string
+  tenantId: string
+  profile?: {
+    avatar?: string
+    bio?: string
+  }
+}
+
 interface LayoutProps {
   toggleDarkMode: () => void
   darkMode: boolean
@@ -65,6 +78,23 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
     navigate(path)
     setDrawerOpen(false)
   }
+
+  // Add a function to get the full image URL
+  const getFullImageUrl = (imagePath: string | undefined) => {
+    if (!imagePath) return undefined;
+    
+    // If it's already a data URL (from preview), return as is
+    if (imagePath.startsWith('data:')) {
+      return imagePath;
+    }
+    
+    // If it's a relative path, prepend the base URL
+    if (imagePath.startsWith('/')) {
+      return `${window.location.origin}${imagePath}`;
+    }
+    
+    return imagePath;
+  };
 
   const isAdmin = user?.role === 'admin'
 
@@ -172,7 +202,10 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
             <Box sx={{ flexGrow: 0, ml: 2 }}>
               <Tooltip title="Open settings">
                 <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                  <Avatar alt={user?.name || 'User'} src="/static/avatar.jpg">
+                  <Avatar 
+                    alt={user?.name || 'User'} 
+                    src={getFullImageUrl(user?.profile?.avatar)}
+                  >
                     {user?.name?.charAt(0) || 'U'}
                   </Avatar>
                 </IconButton>

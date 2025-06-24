@@ -1,4 +1,4 @@
-import { useState, useContext, FormEvent } from 'react'
+import { useState, useContext, FormEvent, useEffect } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Avatar,
@@ -15,16 +15,20 @@ import {
   FormControl,
   InputLabel,
   Select,
-  SelectChangeEvent
+  SelectChangeEvent,
+  CircularProgress
 } from '@mui/material'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import AuthContext from '../../context/AuthContext'
+import axios from 'axios'
 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [selectedTenant, setSelectedTenant] = useState('default')
   const [formErrors, setFormErrors] = useState<{email?: string, password?: string}>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverStatus, setServerStatus] = useState<string | null>(null)
   
   const { login, error, clearError, tenantId, setTenantId } = useContext(AuthContext)
 
@@ -33,6 +37,24 @@ const Login = () => {
     { id: 'default', name: 'LearnMsDb' },
     { id: 'ngo', name: 'NgoLms' }
   ]
+
+  // Check server status when component loads
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        await axios.get('/')
+        setServerStatus('Server is online')
+      } catch (err) {
+        if (axios.isAxiosError(err) && !err.response) {
+          setServerStatus('Server is offline. Please make sure the backend server is running.')
+        } else {
+          setServerStatus(null)
+        }
+      }
+    }
+    
+    checkServer()
+  }, [])
 
   const validateForm = () => {
     const errors: {email?: string, password?: string} = {}
@@ -60,7 +82,28 @@ const Login = () => {
     clearError()
     
     if (validateForm()) {
-      await login(email, password, selectedTenant)
+      setIsSubmitting(true)
+      
+      try {
+        // Use direct axios call with explicit headers for better error handling
+        const response = await axios.post('/api/auth/login', 
+          { email, password },
+          { 
+            headers: { 
+              'x-tenant-id': selectedTenant,
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+        
+        console.log('Login successful:', response.data)
+        // If successful direct call, use the context method to update state
+        await login(email, password, selectedTenant)
+      } catch (err) {
+        console.error('Login error:', err)
+      } finally {
+        setIsSubmitting(false)
+      }
     }
   }
 
@@ -87,6 +130,12 @@ const Login = () => {
         <Typography component="h1" variant="h5">
           Sign in
         </Typography>
+        
+        {serverStatus && (
+          <Alert severity={serverStatus.includes('offline') ? 'error' : 'info'} sx={{ width: '100%', mt: 2 }}>
+            {serverStatus}
+          </Alert>
+        )}
         
         {error && (
           <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
@@ -145,8 +194,9 @@ const Login = () => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
+            disabled={isSubmitting}
           >
-            Sign In
+            {isSubmitting ? <CircularProgress size={24} /> : 'Sign In'}
           </Button>
           <Grid container>
             <Grid item xs>

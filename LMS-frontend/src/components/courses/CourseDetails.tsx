@@ -31,7 +31,8 @@ import {
   InsertDriveFile as FileIcon,
   Quiz as QuizIcon,
   CheckCircle as CompletedIcon,
-  RadioButtonUnchecked as IncompleteIcon
+  RadioButtonUnchecked as IncompleteIcon,
+  CheckCircle
 } from '@mui/icons-material'
 import axios from 'axios'
 import ModuleManager from './ModuleManager'
@@ -336,7 +337,7 @@ const CourseDetails = () => {
             <TabPanel value={tabValue} index={0}>
               {/* Show module manager for instructors and admins */}
               {user && (user.role === 'instructor' || user.role === 'admin') && 
-                course.instructor._id === user.id && (
+                course.instructor._id === user._id && (
                 <ModuleManager courseId={course._id} />
               )}
               
@@ -383,7 +384,7 @@ const CourseDetails = () => {
                     No content available for this course yet.
                   </Typography>
                   {user && (user.role === 'instructor' || user.role === 'admin') && 
-                    course.instructor._id === user.id && (
+                    course.instructor._id === user._id && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                       Use the module manager above to add content to your course.
                     </Typography>
@@ -420,7 +421,7 @@ const CourseDetails = () => {
                                 label="Submitted" 
                                 color="success" 
                                 size="small" 
-                                icon={<CheckCircle />} 
+                                icon={<CompletedIcon />} 
                               />
                             ) : (
                               <Button

@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const path = require('path');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -15,6 +16,87 @@ exports.getUsers = async (req, res) => {
     });
   } catch (err) {
     console.error(`Error in getUsers: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};
+
+// @desc    Get user profile
+// @route   GET /api/users/profile
+// @access  Private
+exports.getUserProfile = async (req, res) => {
+  try {
+    console.log('getUserProfile called');
+    console.log('req.user:', req.user);
+    console.log('req.tenantId:', req.tenantId);
+    
+    // Check if req.user exists
+    if (!req.user || !req.user.id) {
+      console.log('User not authenticated - missing user ID');
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
+    console.log(`Finding user with ID: ${req.user.id} and tenantId: ${req.tenantId}`);
+    
+    // Check if User model is available
+    if (!req.tenantConnection || !req.tenantConnection.models || !req.tenantConnection.models.User) {
+      console.error('User model not available on tenant connection');
+      console.log('Available models:', req.tenantConnection ? Object.keys(req.tenantConnection.models || {}) : 'No connection');
+      
+      // Get User model from the default import
+      const User = require('../models/User');
+      console.log('Using default User model');
+      
+      const user = await User.findOne({
+        _id: req.user.id,
+        tenantId: req.tenantId
+      });
+      
+      if (!user) {
+        console.log('User not found with default model');
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      console.log('User found with default model:', user.name);
+      return res.status(200).json({
+        success: true,
+        data: user
+      });
+    }
+    
+    // Get User model from tenant connection
+    const User = req.tenantConnection.models.User;
+    console.log('Using tenant connection User model');
+    
+    const user = await User.findOne({
+      _id: req.user.id,
+      tenantId: req.tenantId
+    });
+
+    if (!user) {
+      console.log('User not found with tenant model');
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    console.log('User found:', user.name);
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (err) {
+    console.error(`Error in getUserProfile: ${err.message}`);
+    console.error(err.stack);
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -215,6 +297,118 @@ exports.getStudents = async (req, res) => {
     });
   } catch (err) {
     console.error(`Error in getStudents: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+exports.updateUserProfile = async (req, res) => {
+  try {
+    console.log('updateUserProfile called');
+    console.log('req.user:', req.user);
+    console.log('req.body:', req.body);
+    
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
+    // Prepare update data
+    const updateData = {
+      name: req.body.name
+    };
+
+    // If profile data provided, update or create profile object
+    if (req.body.bio) {
+      updateData.profile = updateData.profile || {};
+      updateData.profile.bio = req.body.bio;
+    }
+
+    // Handle file upload if there is one
+    if (req.files && req.files.avatar) {
+      try {
+        const file = req.files.avatar;
+        
+        // Create a unique filename
+        const fileName = `${Date.now()}_${file.name}`;
+        const uploadPath = path.join(__dirname, '../../public/uploads/avatars', fileName);
+        
+        // Move the file (synchronously)
+        await new Promise((resolve, reject) => {
+          file.mv(uploadPath, (err) => {
+            if (err) {
+              console.error('File upload error:', err);
+              reject(err);
+            } else {
+              console.log('File uploaded successfully to:', uploadPath);
+              resolve();
+            }
+          });
+        });
+        
+        // Use a path that will be accessible from the frontend via the proxy
+        const avatarUrl = `/uploads/avatars/${fileName}`;
+        
+        // Log the path for debugging
+        console.log('Avatar URL set to:', avatarUrl);
+        
+        // Set the avatar path in the profile
+        updateData.profile = updateData.profile || {};
+        updateData.profile.avatar = avatarUrl;
+      } catch (uploadErr) {
+        console.error('Error during file upload:', uploadErr);
+        return res.status(500).json({
+          success: false,
+          error: 'File upload failed'
+        });
+      }
+    }
+    
+    console.log('Update data:', updateData);
+
+    // Determine which User model to use
+    let User;
+    if (req.tenantConnection && req.tenantConnection.models && req.tenantConnection.models.User) {
+      User = req.tenantConnection.models.User;
+    } else {
+      User = require('../models/User');
+    }
+    
+    // Find and update user
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.user.id,
+        tenantId: req.tenantId
+      },
+      updateData,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    console.log('User profile updated successfully:', user);
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (err) {
+    console.error(`Error in updateUserProfile: ${err.message}`);
+    console.error(err.stack);
     res.status(500).json({
       success: false,
       error: 'Server Error'

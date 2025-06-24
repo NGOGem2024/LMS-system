@@ -8,6 +8,7 @@ const { getConnectionForTenant } = require('../utils/tenantUtils');
  * @param {Function} next - Express next function
  */
 const protect = async (req, res, next) => {
+  console.log('Auth middleware - Starting authentication check');
   let token;
 
   // Check for token in headers
@@ -16,10 +17,14 @@ const protect = async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
+    console.log('Auth middleware - Token found in Authorization header');
+  } else {
+    console.log('Auth middleware - No token in Authorization header');
   }
 
   // Check if token exists
   if (!token) {
+    console.log('Auth middleware - No token provided, returning 401');
     return res.status(401).json({
       success: false,
       error: 'Not authorized to access this route'
@@ -28,7 +33,9 @@ const protect = async (req, res, next) => {
 
   try {
     // Verify token
+    console.log('Auth middleware - Verifying token');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Auth middleware - Token verified successfully:', { id: decoded.id, role: decoded.role, tenantId: decoded.tenantId });
 
     // Set user in request
     req.user = decoded;
@@ -36,21 +43,30 @@ const protect = async (req, res, next) => {
     // Set tenant ID if available in token
     if (decoded.tenantId) {
       req.tenantId = decoded.tenantId;
+      console.log(`Auth middleware - Setting tenant ID: ${decoded.tenantId}`);
       
       // Only get tenant connection if not already set (e.g. by tenantMiddleware)
       if (!req.tenantConnection) {
         try {
+          console.log('Auth middleware - Getting tenant connection');
           const connection = await getConnectionForTenant(decoded.tenantId);
           req.tenantConnection = connection;
+          console.log('Auth middleware - Tenant connection set successfully');
         } catch (connErr) {
-          console.error(`Error getting tenant connection: ${connErr.message}`);
+          console.error(`Auth middleware - Error getting tenant connection: ${connErr.message}`);
           // Continue without connection - next middleware might handle it
         }
+      } else {
+        console.log('Auth middleware - Tenant connection already exists');
       }
+    } else {
+      console.log('Auth middleware - No tenant ID in token');
     }
 
+    console.log('Auth middleware - Authentication successful, proceeding to next middleware');
     next();
   } catch (err) {
+    console.error(`Auth middleware - Token verification failed: ${err.message}`);
     return res.status(401).json({
       success: false,
       error: 'Not authorized to access this route'
@@ -65,7 +81,10 @@ const protect = async (req, res, next) => {
  */
 const authorize = (...roles) => {
   return (req, res, next) => {
+    console.log(`Authorization check for role: ${req.user.role}, allowed roles: ${roles.join(', ')}`);
+    
     if (!req.user.role) {
+      console.log('Authorization failed: User role not defined');
       return res.status(403).json({
         success: false,
         error: 'User role not defined'
@@ -73,12 +92,14 @@ const authorize = (...roles) => {
     }
 
     if (!roles.includes(req.user.role)) {
+      console.log(`Authorization failed: User role ${req.user.role} not in allowed roles`);
       return res.status(403).json({
         success: false,
         error: `User role ${req.user.role} is not authorized to access this route`
       });
     }
     
+    console.log('Authorization successful');
     next();
   };
 };

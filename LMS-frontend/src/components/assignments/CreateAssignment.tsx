@@ -317,7 +317,7 @@ const CreateAssignment = () => {
               </Grid>
             </Grid>
             
-            <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid container spacing={2} sx={{ mt: 1 }}> 
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth

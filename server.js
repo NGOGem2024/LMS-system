@@ -1,12 +1,15 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const helmet = require('helmet');
 const mongoose = require('mongoose');
+const fileUpload = require('express-fileupload');
+const path = require('path');
+const fs = require('fs');
 
 // Import database connection
 const { connectDB } = require('./src/config/db');
 const { switchToDatabase, getActiveConnections } = require('./src/utils/dbSwitcher');
+const { getConnectionInfo } = require('./src/utils/tenantUtils');
 
 // Load env vars
 dotenv.config();
@@ -17,10 +20,27 @@ console.log('MONGO_URI:', process.env.MONGO_URI);
 // Initialize app
 const app = express();
 
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'public', 'uploads', 'avatars');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Created uploads directory:', uploadsDir);
+}
+
 // Middleware
 app.use(express.json());
-app.use(cors());
-app.use(helmet());
+app.use(cors({
+  origin: '*', // Allow access from any origin
+  exposedHeaders: ['Content-Disposition'] // Needed for file downloads
+}));
+app.use(fileUpload({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max file size
+  createParentPath: true
+}));
+
+// Serve static files from public directory
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+console.log('Serving static files from:', path.join(__dirname, 'public/uploads'), 'at URL path: /uploads');
 
 // Import error handler
 const errorHandler = require('./src/middleware/errorMiddleware');
@@ -38,19 +58,19 @@ app.use('/api/progress', require('./src/routes/userProgress'));
 app.use('/api/modules', require('./src/routes/modules'));
 app.use('/api/content', require('./src/routes/content'));
 
-// Connect to default MongoDB database
-connectDB('default')
-  .then(() => {
-    console.log('Default database connection established');
-  })
-  .catch(err => {
-    console.error(`Error connecting to default database: ${err.message}`);
-    process.exit(1);
-  });
-
 // Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to LMS API with Multi-tenant support' });
+});
+
+// Diagnostic route to check connection status
+app.get('/api/status/connections', (req, res) => {
+  const connections = getConnectionInfo();
+  res.json({
+    success: true,
+    connections,
+    count: Object.keys(connections).length
+  });
 });
 
 // Test route for database switching (no auth required - for testing only)
@@ -91,14 +111,33 @@ app.get('/test-active-connections', (req, res) => {
 app.use(errorHandler);
 
 // Port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 2000;
 
-// Store server instance
-const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Connect to MongoDB and start server
+const startServer = async () => {
+  try {
+    // Connect to default MongoDB database and wait for connection
+    const connection = await connectDB('default');
+    console.log('Default database connection established');
+    
+    // Load all models from the models directory
+    const { getModels } = require('./src/models');
+    const models = getModels(connection);
+    console.log('All models registered for default connection');
+    
+    // Start server only after DB connection is established
+    const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (err, promise) => {
+      console.log(`Error: ${err.message}`);
+      // Close server & exit process
+      server.close(() => process.exit(1));
+    });
+  } catch (err) {
+    console.error(`Failed to start server: ${err.message}`);
+    process.exit(1);
+  }
+};
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  server.close(() => process.exit(1));
-}); 
+startServer(); 

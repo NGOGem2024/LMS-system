@@ -55,6 +55,7 @@ interface Assignment {
     _id: string
     title: string
   }
+  status?: string
 }
 
 const Dashboard = () => {
@@ -94,11 +95,11 @@ const Dashboard = () => {
         
         // If API is not ready, calculate some stats from the courses and assignments
         if (!statsRes.data || !statsRes.data.totalCourses) {
-          const allCourses = coursesRes.data
-          const completedCourses = allCourses.filter(c => c.progress === 100).length
-          const inProgressCourses = allCourses.filter(c => c.progress > 0 && c.progress < 100).length
+          const allCourses = coursesRes.data as Course[]
+          const completedCourses = allCourses.filter((c: Course) => c.progress === 100).length
+          const inProgressCourses = allCourses.filter((c: Course) => c.progress > 0 && c.progress < 100).length
           const totalAssignments = assignmentsRes.data.length
-          const completedAssignments = assignmentsRes.data.filter(a => a.status === 'completed').length
+          const completedAssignments = assignmentsRes.data.filter((a: Assignment) => a.status === 'completed').length
           
           setProgressStats({
             totalCourses: allCourses.length,
@@ -108,7 +109,7 @@ const Dashboard = () => {
             completedAssignments,
             pendingAssignments: totalAssignments - completedAssignments,
             overallProgress: allCourses.length > 0 
-              ? allCourses.reduce((sum, course) => sum + course.progress, 0) / allCourses.length
+              ? allCourses.reduce((sum: number, course: Course) => sum + course.progress, 0) / allCourses.length
               : 0
           })
         }

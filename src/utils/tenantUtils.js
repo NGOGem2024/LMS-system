@@ -28,14 +28,84 @@ const closeExistingConnection = async (tenantId) => {
  * @returns {Promise<Connection>} Mongoose connection
  */
 const getConnectionForTenant = async (tenantId) => {
-  // If connection exists and is open, close it to avoid conflicts
-  await closeExistingConnection(tenantId);
+  // Check if a connection already exists
+  if (tenantConnections.has(tenantId)) {
+    const existingConnection = tenantConnections.get(tenantId);
+    
+    // If connection is open (readyState 1), reuse it
+    if (existingConnection.readyState === 1) {
+      console.log(`Reusing existing connection for tenant: ${tenantId}`);
+      return existingConnection;
+    } 
+    // If connection is connecting (readyState 2), wait for it
+    else if (existingConnection.readyState === 2) {
+      console.log(`Waiting for existing connection for tenant: ${tenantId}`);
+      try {
+        // Wait for the connection to be established
+        await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Connection timeout'));
+          }, 5000);
+          
+          existingConnection.once('connected', () => {
+            clearTimeout(timeoutId);
+            resolve();
+          });
+          
+          existingConnection.once('error', (err) => {
+            clearTimeout(timeoutId);
+            reject(err);
+          });
+        });
+        
+        console.log(`Connection ready for tenant: ${tenantId}`);
+        return existingConnection;
+      } catch (err) {
+        console.error(`Error waiting for connection: ${err.message}`);
+        tenantConnections.delete(tenantId);
+        // Continue to create a new connection
+      }
+    }
+    // If connection is closed, disconnected, or disconnecting, remove it from the map
+    else {
+      console.log(`Removing stale connection for tenant: ${tenantId}, state: ${existingConnection.readyState}`);
+      tenantConnections.delete(tenantId);
+    }
+  }
   
   // Create a new connection
   console.log(`Creating new connection for tenant: ${tenantId}`);
-  const connection = await getTenantConnection(tenantId);
-  tenantConnections.set(tenantId, connection);
-  return connection;
+  
+  try {
+    const connection = await getTenantConnection(tenantId);
+    
+    // Store the connection in the map
+    tenantConnections.set(tenantId, connection);
+    
+    // Register connection event handlers
+    if (connection && typeof connection.on === 'function') {
+      connection.on('error', (err) => {
+        console.error(`Connection error for tenant ${tenantId}: ${err.message}`);
+      });
+      
+      connection.on('disconnected', () => {
+        console.log(`Connection disconnected for tenant: ${tenantId}`);
+        // Remove from map on disconnection
+        if (tenantConnections.get(tenantId) === connection) {
+          tenantConnections.delete(tenantId);
+        }
+      });
+    }
+    
+    // Register models for this connection
+    const { getModels } = require('../models');
+    getModels(connection);
+    
+    return connection;
+  } catch (err) {
+    console.error(`Error creating connection for tenant ${tenantId}: ${err.message}`);
+    throw err;
+  }
 };
 
 /**
@@ -57,6 +127,24 @@ const closeAllConnections = async () => {
 };
 
 /**
+ * Get all active connections
+ * @returns {Object} Object containing connection info
+ */
+const getConnectionInfo = () => {
+  const result = {};
+  
+  for (const [tenantId, connection] of tenantConnections.entries()) {
+    result[tenantId] = {
+      readyState: connection.readyState,
+      host: connection.host,
+      name: connection.name
+    };
+  }
+  
+  return result;
+};
+
+/**
  * Extract tenant ID from request
  * Can be extracted from subdomain, header, or token
  * @param {Object} req - Express request object
@@ -66,21 +154,18 @@ const extractTenantId = (req) => {
   // Option 1: Extract from custom header - highest priority
   const tenantHeader = req.headers['x-tenant-id'];
   if (tenantHeader) {
-    console.log(`Extracted tenant ID from header: ${tenantHeader}`);
     return tenantHeader;
   }
   
   // Option 2: Extract from JWT token
   const tokenTenantId = req.user ? req.user.tenantId : null;
   if (tokenTenantId) {
-    console.log(`Extracted tenant ID from token: ${tokenTenantId}`);
     return tokenTenantId;
   }
   
   // Option 3: Extract from query parameter
   const queryTenantId = req.query ? req.query.tenantId : null;
   if (queryTenantId) {
-    console.log(`Extracted tenant ID from query: ${queryTenantId}`);
     return queryTenantId;
   }
   
@@ -89,13 +174,11 @@ const extractTenantId = (req) => {
   if (host && !host.includes('localhost')) {
     const subdomain = host.split('.')[0];
     if (subdomain && subdomain !== 'www') {
-      console.log(`Extracted tenant ID from subdomain: ${subdomain}`);
       return subdomain;
     }
   }
   
   // Default to 'default' tenant
-  console.log(`No tenant ID found, using default tenant`);
   return 'default';
 };
 
@@ -125,5 +208,6 @@ module.exports = {
   closeAllConnections,
   extractTenantId,
   getActiveTenantConnections,
-  switchTenant
+  switchTenant,
+  getConnectionInfo
 }; 
