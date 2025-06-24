@@ -161,10 +161,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setTenantId(registerTenantId)
       }
       
+      console.log(`Registering user: ${email} with tenant: ${currentTenantId}, role: ${role || 'student'}`)
+      
       // Add role to registration data if provided
       const registrationData = { name, email, password, role: role || 'student' }
       
-      const res = await axios.post('/api/auth/register', registrationData)
+      // Set headers with tenant ID explicitly for this request
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': currentTenantId
+        }
+      }
+      
+      const res = await axios.post('/api/auth/register', registrationData, config)
+      
+      console.log('Registration response:', res.data)
+      
       localStorage.setItem('token', res.data.token)
       setToken(res.data.token)
       setUser(res.data.user)
@@ -178,6 +191,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setError(null)
       navigate('/')
     } catch (err: any) {
+      console.error('Registration error:', err.response?.data || err.message)
       setError(err.response?.data?.error || 'Registration failed. Please try again.')
     }
   }

@@ -20,16 +20,21 @@ exports.register = async (req, res) => {
       });
     }
 
+    console.log(`Register attempt - Email: ${email}, Tenant: ${tenantId}, Role: ${role || 'student'}`);
+
     // Get tenant connection
     const connection = await getConnectionForTenant(tenantId);
     
     // Get User model for this tenant
     const User = getModel(connection, 'User');
 
-    // Check if user exists
+    // Check if user exists - add detailed logging
+    console.log(`Checking if user exists with email: ${email} and tenantId: ${tenantId}`);
     const userExists = await User.findOne({ email, tenantId });
+    console.log(`User exists check result:`, userExists ? `Found user with ID: ${userExists._id}` : 'No existing user found');
 
     if (userExists) {
+      console.log(`Registration failed - User already exists with email: ${email}`);
       return res.status(400).json({
         success: false,
         error: 'User already exists'
@@ -37,6 +42,7 @@ exports.register = async (req, res) => {
     }
 
     // Create user
+    console.log(`Creating new user with email: ${email}, tenantId: ${tenantId}`);
     const user = await User.create({
       name,
       email,
@@ -44,6 +50,8 @@ exports.register = async (req, res) => {
       role: role || 'student',
       tenantId
     });
+
+    console.log(`User created successfully with ID: ${user._id}`);
 
     // Generate token
     const token = user.getSignedJwtToken();
@@ -61,9 +69,11 @@ exports.register = async (req, res) => {
     });
   } catch (err) {
     console.error(`Error in register: ${err.message}`);
+    console.error(`Full error:`, err);
     
     // Check for duplicate email error
     if (err.code === 11000) {
+      console.error(`Duplicate key error: ${JSON.stringify(err.keyValue)}`);
       return res.status(400).json({
         success: false,
         error: 'Email is already registered. Please use a different email or try logging in.'

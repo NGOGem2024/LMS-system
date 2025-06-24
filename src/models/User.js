@@ -66,6 +66,7 @@ const UserSchema = new mongoose.Schema({
 
 // Create compound index for email and tenantId to ensure email is unique per tenant
 UserSchema.index({ email: 1, tenantId: 1 }, { unique: true });
+console.log('User model: Compound index for email and tenantId created');
 
 // Encrypt password using bcrypt
 UserSchema.pre('save', async function(next) {

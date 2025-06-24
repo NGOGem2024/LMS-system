@@ -24,11 +24,11 @@ axios.interceptors.request.use(
     
     // Log for debugging
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    console.log('Request headers:', config.headers);
+    console.log('Request headers:', JSON.stringify(config.headers));
     console.log('Tenant ID being used:', tenantId);
     
     if (config.data) {
-      console.log('Request payload:', config.data);
+      console.log('Request payload:', JSON.stringify(config.data));
     }
     
     return config;

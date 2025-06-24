@@ -121,20 +121,13 @@ const Register = () => {
       setIsSubmitting(true)
       
       try {
-        // Use direct axios call with explicit headers for better error handling
-        const response = await axios.post('/api/auth/register', 
-          { name, email, password, role },
-          { 
-            headers: { 
-              'x-tenant-id': selectedTenant,
-              'Content-Type': 'application/json'
-            }
-          }
-        )
+        console.log(`Registering user with email: ${email}, tenant: ${selectedTenant}, role: ${role}`)
         
-        console.log('Registration successful:', response.data)
-        // If successful direct call, use the context method to update state
+        // Use the context method to register which will update state properly
         await register(name, email, password, selectedTenant, role)
+        
+        // If we get here, registration was successful
+        console.log('Registration successful through context')
       } catch (err) {
         console.error('Registration error:', err)
       } finally {

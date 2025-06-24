@@ -18,6 +18,8 @@ const connectDB = async (tenantId = null) => {
     // If tenantId exists in the map, use that database, otherwise use tenant-specific naming
     const dbName = tenantId ? (tenantDbMap[tenantId] || `${tenantId}Db`) : 'LearnMsDb';
     
+    console.log(`Connecting to database for tenant: ${tenantId || 'default'}, using database: ${dbName}`);
+    
     // Get base connection string without database name
     let baseUri = process.env.MONGO_URI;
     if (baseUri.includes('/LearnMsDb')) {
@@ -26,6 +28,7 @@ const connectDB = async (tenantId = null) => {
     
     // Create connection string with the appropriate database name
     const connectionString = `${baseUri}/${dbName}`;
+    console.log(`Connection string (without password): ${connectionString.replace(/\/\/[^:]+:[^@]+@/, '//[REDACTED]@')}`);
     
     // Create a new mongoose instance for each tenant to avoid connection conflicts
     const mongooseInstance = new mongoose.Mongoose();
