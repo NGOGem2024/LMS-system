@@ -37,9 +37,15 @@ interface Course {
   }
   category: string
   imageUrl?: string
+  thumbnail?: string
   enrolledCount: number
   isEnrolled?: boolean
   progress?: number
+}
+
+interface CoursesResponse {
+  courses: Course[]
+  totalRecords: number
 }
 
 const Courses = () => {
@@ -51,6 +57,7 @@ const Courses = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
   const coursesPerPage = 8
 
   useEffect(() => {
@@ -60,14 +67,21 @@ const Courses = () => {
       
       try {
         console.log('Fetching courses...')
-        const res = await axios.get('/api/courses', {
+        const res = await axios.get<CoursesResponse>('/api/courses', {
           // Add a longer timeout for the request
           timeout: 10000
         })
         console.log('Courses API response:', res.data)
-        setCourses(res.data)
-        setFilteredCourses(res.data)
-        setTotalPages(Math.ceil(res.data.length / coursesPerPage))
+        
+        // Extract courses and totalRecords from the response
+        const { courses, totalRecords } = res.data
+        
+        setCourses(courses)
+        setFilteredCourses(courses)
+        setTotalRecords(totalRecords)
+        setTotalPages(Math.ceil(courses.length / coursesPerPage))
+        
+        console.log(`Total records: ${totalRecords}`)
       } catch (err: any) {
         console.error('Failed to load courses:', err)
         if (err.response) {
@@ -168,7 +182,7 @@ const Courses = () => {
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <SchoolIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
           <Typography variant="h4" component="h1">
-            Courses
+            Courses {totalRecords > 0 && <Typography component="span" variant="subtitle1" color="text.secondary">({totalRecords} total)</Typography>}
           </Typography>
         </Box>
         
@@ -200,12 +214,13 @@ const Courses = () => {
                   const fetchCourses = async () => {
                     try {
                       console.log('Retrying course fetch...');
-                      const res = await axios.get('/api/courses', {
+                      const res = await axios.get<CoursesResponse>('/api/courses', {
                         timeout: 15000
                       });
-                      setCourses(res.data);
-                      setFilteredCourses(res.data);
-                      setTotalPages(Math.ceil(res.data.length / coursesPerPage));
+                      setCourses(res.data.courses);
+                      setFilteredCourses(res.data.courses);
+                      setTotalRecords(res.data.totalRecords);
+                      setTotalPages(Math.ceil(res.data.courses.length / coursesPerPage));
                     } catch (err: any) {
                       console.error('Retry failed:', err);
                       setError('Retry failed. Please try again later.');
@@ -278,7 +293,7 @@ const Courses = () => {
                   <CardMedia
                     component="img"
                     height="140"
-                    image={course.imageUrl || `https://source.unsplash.com/random?education,${course._id}`}
+                    image={course.thumbnail || course.imageUrl || `https://source.unsplash.com/random?education,${course._id}`}
                     alt={course.title}
                   />
                   <CardContent sx={{ flexGrow: 1 }}>

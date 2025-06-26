@@ -81,6 +81,7 @@ interface Course {
   }
   category: string
   imageUrl?: string
+  thumbnail?: string
   enrolledCount: number
   isEnrolled: boolean
   progress: number
@@ -279,7 +280,7 @@ const CourseDetails = () => {
               backgroundSize: 'cover',
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'center',
-              backgroundImage: `url(${course.imageUrl || 'https://source.unsplash.com/random?education'})`,
+              backgroundImage: `url(${course.thumbnail || course.imageUrl || 'https://source.unsplash.com/random?education'})`,
             }}
           >
             <Box

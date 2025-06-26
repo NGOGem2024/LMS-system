@@ -1,4 +1,6 @@
 const Course = require('../models/Course');
+const path = require('path');
+const fs = require('fs');
 
 // @desc    Get all courses
 // @route   GET /api/courses
@@ -35,10 +37,16 @@ exports.getCourses = async (req, res) => {
         .sort('-createdAt')
         .lean();
       
-      console.log(`GetCourses: Found ${courses.length} courses for tenant: ${req.tenantId}`);
+      // Get total count of courses
+      const totalRecords = courses.length;
       
-      // Return courses directly as an array
-      return res.status(200).json(courses);
+      console.log(`GetCourses: Found ${totalRecords} courses for tenant: ${req.tenantId}`);
+      
+      // Return courses with totalRecords count
+      return res.status(200).json({
+        totalRecords,
+        courses
+      });
     } catch (queryErr) {
       console.error(`GetCourses: Query execution error: ${queryErr.message}`);
       return res.status(500).json({
@@ -331,7 +339,11 @@ exports.getEnrolledCourses = async (req, res) => {
     
     if (courseIds.length === 0) {
       console.log(`No enrolled courses found for user: ${req.user.id}`);
-      return res.status(200).json([]);
+      // Return object with empty courses array and totalRecords: 0
+      return res.status(200).json({
+        courses: [],
+        totalRecords: 0
+      });
     }
     
     // Find courses with those IDs
@@ -355,8 +367,14 @@ exports.getEnrolledCourses = async (req, res) => {
       throw err;
     }
     
-    // Format the response to match what the frontend expects - an array directly
-    res.status(200).json(courses);
+    // Get total count of enrolled courses
+    const totalRecords = courses.length;
+    
+    // Return courses with totalRecords count
+    res.status(200).json({
+      courses,
+      totalRecords
+    });
   } catch (err) {
     console.error(`Error in getEnrolledCourses: ${err.message}`);
     console.error(`Stack: ${err.stack}`);
@@ -389,6 +407,78 @@ exports.createCourseSimple = async (req, res) => {
         .replace(/ /g, '-')
         .replace(/[^\w-]+/g, '')
     };
+    
+    // Handle file upload if there is one
+    if (req.files && req.files.thumbnail) {
+      try {
+        const file = req.files.thumbnail;
+        
+        // Create a unique filename
+        const fileName = `${Date.now()}_${file.name}`;
+        const uploadPath = path.join(__dirname, '../../public/uploads/course-thumbnails', fileName);
+        
+        // Make sure the directory exists
+        const uploadDir = path.dirname(uploadPath);
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+          console.log('Created uploads directory:', uploadDir);
+        }
+        
+        // Move the file (synchronously)
+        await new Promise((resolve, reject) => {
+          file.mv(uploadPath, (err) => {
+            if (err) {
+              console.error('File upload error:', err);
+              reject(err);
+            } else {
+              console.log('File uploaded successfully to:', uploadPath);
+              resolve();
+            }
+          });
+        });
+        
+        // Use a path that will be accessible from the frontend via the proxy
+        const thumbnailUrl = `/uploads/course-thumbnails/${fileName}`;
+        
+        // Log the path for debugging
+        console.log('Thumbnail URL set to:', thumbnailUrl);
+        
+        // Set the thumbnail path in the course data
+        courseData.thumbnail = thumbnailUrl;
+      } catch (uploadErr) {
+        console.error('Error during file upload:', uploadErr);
+        return res.status(500).json({
+          success: false,
+          error: 'File upload failed'
+        });
+      }
+    } else if (req.body.thumbnailUrl) {
+      // If no file but URL provided, use that
+      courseData.thumbnail = req.body.thumbnailUrl;
+    }
+    
+    // Parse tags if they come as a JSON string
+    if (typeof req.body.tags === 'string') {
+      try {
+        courseData.tags = JSON.parse(req.body.tags);
+      } catch (e) {
+        console.error('Error parsing tags:', e);
+        courseData.tags = [];
+      }
+    }
+    
+    // Convert string values to appropriate types
+    if (req.body.duration) {
+      courseData.duration = parseInt(req.body.duration, 10);
+    }
+    
+    if (req.body.price) {
+      courseData.price = parseFloat(req.body.price);
+    }
+    
+    if (req.body.isPublic) {
+      courseData.isPublic = req.body.isPublic === 'true';
+    }
     
     // Get the mongoose connection from the request
     const connection = req.tenantConnection;

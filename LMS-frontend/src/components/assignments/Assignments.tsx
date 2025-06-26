@@ -58,6 +58,11 @@ interface Course {
   title: string
 }
 
+interface CoursesResponse {
+  courses: Course[]
+  totalRecords: number
+}
+
 const Assignments = () => {
   const { user } = useContext(AuthContext);
   const [assignments, setAssignments] = useState<Assignment[]>([])
@@ -81,8 +86,8 @@ const Assignments = () => {
         setFilteredAssignments(assignmentsRes.data)
         
         // Fetch courses for filter
-        const coursesRes = await axios.get('/api/courses/enrolled')
-        setCourses(coursesRes.data)
+        const coursesRes = await axios.get<CoursesResponse>('/api/courses/enrolled')
+        setCourses(coursesRes.data.courses)
       } catch (err: any) {
         setError('Failed to load assignments. Please try again later.')
         console.error(err)

@@ -15,7 +15,10 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  Grid
+  Grid,
+  Switch,
+  FormControlLabel,
+  InputAdornment
 } from '@mui/material'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
@@ -25,6 +28,11 @@ import axios from 'axios'
 interface Course {
   _id: string;
   title: string;
+}
+
+interface CoursesResponse {
+  courses: Course[];
+  totalRecords: number;
 }
 
 interface Module {
@@ -77,8 +85,8 @@ const CreateAssignment = () => {
     const fetchCourses = async () => {
       setLoadingCourses(true);
       try {
-        const res = await axios.get('/api/courses');
-        setCourses(res.data);
+        const res = await axios.get<CoursesResponse>('/api/courses');
+        setCourses(res.data.courses);
       } catch (err) {
         console.error('Error fetching courses:', err);
         setError('Failed to load courses. Please try again later.');

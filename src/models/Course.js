@@ -83,8 +83,8 @@ const CourseSchema = new mongoose.Schema({
     index: true
   }
 }, {
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toJSON: { virtuals: true, id: false },
+  toObject: { virtuals: true, id: false }
 });
 
 // Create course slug from the title
