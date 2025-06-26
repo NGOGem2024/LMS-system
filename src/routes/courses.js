@@ -6,7 +6,8 @@ const {
   updateCourse,
   deleteCourse,
   getEnrolledCourses,
-  createCourseSimple
+  createCourseSimple,
+  enrollInCourse
 } = require('../controllers/courseController');
 
 const router = express.Router();
@@ -39,6 +40,10 @@ router.route('/admin')
 // Simplified course creation route
 router.route('/simple')
   .post(protect, authorize('instructor', 'admin'), createCourseSimple);
+
+// Course enrollment route
+router.route('/:id/enroll')
+  .post(protect, enrollInCourse);
 
 router.route('/:id')
   .get(protect, getCourse)

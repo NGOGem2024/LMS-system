@@ -422,4 +422,86 @@ exports.createCourseSimple = async (req, res) => {
       error: 'Server Error: ' + err.message
     });
   }
+};
+
+// @desc    Enroll user in a course
+// @route   POST /api/courses/:id/enroll
+// @access  Private
+exports.enrollInCourse = async (req, res) => {
+  try {
+    // Get tenant connection
+    const connection = req.tenantConnection;
+    if (!connection) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection not available'
+      });
+    }
+    
+    // Use models from tenant connection
+    const { getModel } = require('../models');
+    const Course = getModel(connection, 'Course');
+    const UserProgress = getModel(connection, 'UserProgress');
+    
+    console.log(`Enrolling user ${req.user.id} in course ${req.params.id}`);
+    
+    // Check if course exists
+    const course = await Course.findOne({
+      _id: req.params.id,
+      tenantId: req.tenantId
+    });
+    
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'Course not found'
+      });
+    }
+    
+    // Check if already enrolled
+    const existingEnrollment = await UserProgress.findOne({
+      user: req.user.id,
+      course: req.params.id,
+      tenantId: req.tenantId
+    });
+    
+    if (existingEnrollment) {
+      return res.status(400).json({
+        success: false,
+        error: 'Already enrolled in this course'
+      });
+    }
+    
+    // Create enrollment / user progress
+    const userProgress = await UserProgress.create({
+      user: req.user.id,
+      course: req.params.id,
+      tenantId: req.tenantId,
+      enrollmentDate: Date.now(),
+      progress: 0,
+      completed: false,
+      lastActivity: Date.now()
+    });
+    
+    // Increment course enrollment count
+    course.enrollmentCount = (course.enrollmentCount || 0) + 1;
+    await course.save();
+    
+    console.log(`User ${req.user.id} successfully enrolled in course ${req.params.id}`);
+    
+    res.status(201).json({
+      success: true,
+      data: {
+        course: req.params.id,
+        enrollmentDate: userProgress.enrollmentDate
+      }
+    });
+  } catch (err) {
+    console.error(`Error in enrollInCourse: ${err.message}`);
+    console.error(`Stack: ${err.stack}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
 }; 

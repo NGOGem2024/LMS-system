@@ -12,7 +12,11 @@ import {
   Select,
   MenuItem,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Switch,
+  FormControlLabel,
+  Chip,
+  Stack
 } from '@mui/material'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
@@ -26,6 +30,9 @@ interface CourseFormData {
   category: string;
   price: number;
   status: string;
+  isPublic: boolean;
+  thumbnail: string;
+  tags: string[];
 }
 
 const AddCourse = () => {
@@ -34,6 +41,7 @@ const AddCourse = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState<string>('');
   
   const [formData, setFormData] = useState<CourseFormData>({
     title: '',
@@ -43,7 +51,10 @@ const AddCourse = () => {
     level: 'beginner',
     category: '',
     price: 0,
-    status: 'draft'
+    status: 'draft',
+    isPublic: false,
+    thumbnail: '',
+    tags: []
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
@@ -53,6 +64,38 @@ const AddCourse = () => {
         ...formData,
         [name]: value
       });
+    }
+  };
+
+  const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: checked
+    });
+  };
+
+  const handleAddTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tagInput.trim()]
+      });
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter(tag => tag !== tagToRemove)
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      handleAddTag();
     }
   };
 
@@ -258,22 +301,85 @@ const AddCourse = () => {
             />
           </Box>
           
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel id="status-label">Status</InputLabel>
-            <Select
-              labelId="status-label"
-              id="status"
-              name="status"
-              value={formData.status}
-              label="Status"
-              onChange={handleChange}
-              disabled={loading}
-            >
-              <MenuItem value="draft">Draft</MenuItem>
-              <MenuItem value="published">Published</MenuItem>
-              <MenuItem value="archived">Archived</MenuItem>
-            </Select>
-          </FormControl>
+          <TextField
+            margin="normal"
+            fullWidth
+            id="thumbnail"
+            label="Thumbnail URL"
+            name="thumbnail"
+            value={formData.thumbnail}
+            onChange={handleChange}
+            disabled={loading}
+            helperText="URL or path to course thumbnail image"
+          />
+          
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Tags
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+              <TextField
+                fullWidth
+                id="tagInput"
+                label="Add Tag"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+                helperText="Press Enter to add a tag"
+              />
+              <Button 
+                variant="contained" 
+                onClick={handleAddTag} 
+                disabled={loading || !tagInput.trim()}
+                sx={{ ml: 1, mt: 1 }}
+              >
+                Add
+              </Button>
+            </Box>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+              {formData.tags.map((tag) => (
+                <Chip 
+                  key={tag}
+                  label={tag}
+                  onDelete={() => handleRemoveTag(tag)}
+                  disabled={loading}
+                />
+              ))}
+            </Stack>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel id="status-label">Status</InputLabel>
+              <Select
+                labelId="status-label"
+                id="status"
+                name="status"
+                value={formData.status}
+                label="Status"
+                onChange={handleChange}
+                disabled={loading}
+              >
+                <MenuItem value="draft">Draft</MenuItem>
+                <MenuItem value="published">Published</MenuItem>
+                <MenuItem value="archived">Archived</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.isPublic}
+                  onChange={handleSwitchChange}
+                  name="isPublic"
+                  disabled={loading}
+                />
+              }
+              label="Make course public"
+              sx={{ ml: 2 }}
+            />
+          </Box>
           
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
             <Button
