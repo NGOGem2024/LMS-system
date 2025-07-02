@@ -5,7 +5,8 @@ const {
   getAssignment,
   createAssignment,
   updateAssignment,
-  deleteAssignment
+  deleteAssignment,
+  getUpcomingAssignments
 } = require('../controllers/assignmentController');
 
 const {
@@ -23,10 +24,7 @@ router.use(tenantMiddleware);
 
 // Special route for upcoming assignments
 router.route('/upcoming')
-  .get(protect, (req, res) => {
-    // Temporarily return empty array until we implement the full functionality
-    res.status(200).json([]);
-  });
+  .get(protect, getUpcomingAssignments);
 
 router.route('/')
   .get(protect, getAssignments)

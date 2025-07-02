@@ -14,7 +14,14 @@ const { getConnectionInfo } = require('./src/utils/tenantUtils');
 // Load env vars
 dotenv.config();
 console.log('Environment variables loaded:', Object.keys(process.env));
-console.log('JWT_SECRET:', process.env.JWT_SECRET);
+
+// Set default JWT_SECRET if not provided
+if (!process.env.JWT_SECRET) {
+  console.log('WARNING: JWT_SECRET not found in environment variables. Using default secret (not secure for production)');
+  process.env.JWT_SECRET = 'default_jwt_secret_for_development_only';
+}
+
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Secret is set' : 'Secret is MISSING');
 console.log('MONGO_URI:', process.env.MONGO_URI);
 
 // Initialize app

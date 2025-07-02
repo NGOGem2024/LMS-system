@@ -68,6 +68,11 @@ interface CoursesResponse {
   totalRecords: number
 }
 
+interface AssignmentsResponse {
+  assignments: Assignment[]
+  totalRecords: number
+}
+
 const Dashboard = () => {
   const [courses, setCourses] = useState<Course[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
@@ -96,8 +101,8 @@ const Dashboard = () => {
         setCourses(coursesRes.data.courses.slice(0, 3)) // Show only 3 latest courses
         
         // Fetch upcoming assignments
-        const assignmentsRes = await axios.get('/api/assignments/upcoming')
-        setAssignments(assignmentsRes.data.slice(0, 5)) // Show only 5 upcoming assignments
+        const assignmentsRes = await axios.get<AssignmentsResponse>('/api/assignments/upcoming')
+        setAssignments(assignmentsRes.data.assignments ? assignmentsRes.data.assignments.slice(0, 5) : []) // Show only 5 upcoming assignments
         
         // Fetch progress statistics
         const statsRes = await axios.get('/api/progress/stats')
@@ -106,10 +111,11 @@ const Dashboard = () => {
         // If API is not ready, calculate some stats from the courses and assignments
         if (!statsRes.data || !statsRes.data.totalCourses) {
           const allCourses = coursesRes.data.courses as Course[]
+          const upcomingAssignments = assignmentsRes.data.assignments || []
           const completedCourses = allCourses.filter((c: Course) => c.progress === 100).length
           const inProgressCourses = allCourses.filter((c: Course) => c.progress > 0 && c.progress < 100).length
-          const totalAssignments = assignmentsRes.data.length
-          const completedAssignments = assignmentsRes.data.filter((a: Assignment) => a.status === 'completed').length
+          const totalAssignments = upcomingAssignments.length
+          const completedAssignments = upcomingAssignments.filter((a: Assignment) => a.status === 'completed').length
           
           setProgressStats({
             totalCourses: allCourses.length,

@@ -9,6 +9,8 @@ const { getConnectionForTenant } = require('../utils/tenantUtils');
  */
 const protect = async (req, res, next) => {
   console.log('Auth middleware - Starting authentication check');
+  console.log('Auth middleware - Request path:', req.path);
+  console.log('Auth middleware - Headers:', JSON.stringify(req.headers));
   let token;
 
   // Check for token in headers
@@ -16,8 +18,9 @@ const protect = async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
+    // Split at the space and take the second part (the actual token)
     token = req.headers.authorization.split(' ')[1];
-    console.log('Auth middleware - Token found in Authorization header');
+    console.log('Auth middleware - Token found in Authorization header:', token.substring(0, 20) + '...');
   } else {
     console.log('Auth middleware - No token in Authorization header');
   }
@@ -33,7 +36,18 @@ const protect = async (req, res, next) => {
 
   try {
     // Verify token
-    console.log('Auth middleware - Verifying token');
+    console.log('Auth middleware - Verifying token with secret:', process.env.JWT_SECRET ? 'Secret exists' : 'Secret MISSING');
+    
+    // Make sure JWT_SECRET is available
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET environment variable is not set!');
+      return res.status(500).json({
+        success: false,
+        error: 'Server configuration error'
+      });
+    }
+    
+    // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Auth middleware - Token verified successfully:', { id: decoded.id, role: decoded.role, tenantId: decoded.tenantId });
 
@@ -67,6 +81,7 @@ const protect = async (req, res, next) => {
     next();
   } catch (err) {
     console.error(`Auth middleware - Token verification failed: ${err.message}`);
+    console.error(`Auth middleware - Error stack: ${err.stack}`);
     return res.status(401).json({
       success: false,
       error: 'Not authorized to access this route'

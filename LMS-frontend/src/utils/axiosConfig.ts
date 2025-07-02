@@ -11,16 +11,19 @@ axios.interceptors.request.use(
     const token = localStorage.getItem('token');
     const tenantId = localStorage.getItem('tenantId') || 'default';
     
-    // Set headers
+    // Ensure headers object exists
+    config.headers = config.headers || {};
+    
+    // Set Authorization header if token exists
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
       console.log('Request with token:', token.substring(0, 15) + '...');
     } else {
       console.log('No auth token available for request');
     }
     
-    // Always include tenant ID header - IMPORTANT: Use the exact case expected by the server
-    config.headers['x-tenant-id'] = tenantId; // lowercase header name as used in tenantUtils.js
+    // Always include tenant ID header
+    config.headers['x-tenant-id'] = tenantId;
     
     // Log for debugging
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
@@ -56,7 +59,6 @@ axios.interceptors.response.use(
     // Handle authentication errors
     if (error.response && error.response.status === 401) {
       console.log('Authentication error - clearing token and redirecting to login');
-      // Clear token and redirect to login
       localStorage.removeItem('token');
       window.location.href = '/login';
     }

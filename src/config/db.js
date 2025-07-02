@@ -57,10 +57,10 @@ const connectDB = async (tenantId = null) => {
     
     // Connect with a promise that resolves when the connection is established
     await new Promise((resolve, reject) => {
-      // Set up a timeout
+      // Set up a timeout - increased from 45s to 60s
       const timeoutId = setTimeout(() => {
         reject(new Error('Database connection timed out'));
-      }, 30000);
+      }, 60000);
       
       // Set up connection success handler
       conn.once('connected', () => {
@@ -74,20 +74,26 @@ const connectDB = async (tenantId = null) => {
         reject(err);
       });
       
-      // Start the connection process
+      // Start the connection process with optimized settings for Atlas
       conn.openUri(connectionString, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 30000,
-        socketTimeoutMS: 60000,
-        connectTimeoutMS: 30000,
+        serverSelectionTimeoutMS: 60000,    // Increased to 60s
+        socketTimeoutMS: 120000,            // Increased to 120s
+        connectTimeoutMS: 60000,            // Increased to 60s
         keepAlive: true,
         keepAliveInitialDelay: 300000,
-        maxPoolSize: 20,
-        minPoolSize: 5,
-        maxIdleTimeMS: 30000,
+        maxPoolSize: 50,                    // Increased to 50
+        minPoolSize: 10,                    // Increased to 10
+        maxIdleTimeMS: 120000,              // Increased to 120s
         retryWrites: true,
-        retryReads: true
+        retryReads: true,
+        bufferCommands: true,               // Buffer commands when connection is lost
+        autoIndex: false,                   // Don't build indexes automatically in production
+        heartbeatFrequencyMS: 10000,        // Check server status every 10 seconds
+        w: 'majority',                      // Write concern for better durability
+        wtimeoutMS: 30000,                  // Write timeout
+        j: true                             // Wait for journal commit
       });
     });
     
@@ -123,7 +129,17 @@ const getTenantConnection = async (tenantId) => {
   
   try {
     console.log(`DB Connect: Getting connection for tenant: ${tenantId}`);
-    return await connectDB(tenantId);
+    
+    // Set a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database connection timed out')), 60000); // Increased to 60s
+    });
+    
+    // Connection promise
+    const connectionPromise = connectDB(tenantId);
+    
+    // Race them
+    return await Promise.race([connectionPromise, timeoutPromise]);
   } catch (err) {
     console.error(`DB Connect: Failed to get connection for tenant ${tenantId}: ${err.message}`);
     throw err;

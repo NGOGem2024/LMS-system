@@ -54,6 +54,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const navigate = useNavigate()
 
+  // Debug token on mount
+  useEffect(() => {
+    console.log('AuthContext initialized with token:', token ? `${token.substring(0, 20)}...` : 'null');
+    console.log('AuthContext initialized with tenantId:', tenantId);
+  }, []);
+
   // Set tenant ID in localStorage when it changes
   useEffect(() => {
     if (tenantId) {
@@ -66,13 +72,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadUser = async () => {
       if (!token) {
+        console.log('No token available, skipping user load');
         setIsLoading(false)
         return
       }
 
       try {
+        console.log('Loading user with token:', token.substring(0, 20) + '...');
+        // Ensure the Authorization header is set correctly for this specific request
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-tenant-id': tenantId
+          }
+        };
+        
         // Get the user profile which includes profile information like avatar
-        const res = await axios.get('/api/auth/me')
+        const res = await axios.get('/api/auth/me', config)
         
         // Set complete user data with profile information
         setUser(res.data.data)
@@ -115,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     loadUser()
-  }, [token])
+  }, [token, tenantId])
 
   const login = async (email: string, password: string, loginTenantId?: string) => {
     try {
@@ -127,7 +143,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setTenantId(loginTenantId)
       }
       
-      const res = await axios.post('/api/auth/login', { email, password })
+      console.log(`Attempting login for ${email} with tenant: ${currentTenantId}`);
+      
+      // Explicitly set headers for this request
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': currentTenantId
+        }
+      };
+      
+      const res = await axios.post('/api/auth/login', { email, password }, config)
+      
+      console.log('Login successful, received token:', res.data.token.substring(0, 20) + '...');
       
       // Store token in localStorage
       localStorage.setItem('token', res.data.token)
@@ -147,6 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setError(null)
       navigate('/')
     } catch (err: any) {
+      console.error('Login failed:', err.response?.data || err.message);
       setError(err.response?.data?.error || 'Login failed. Please try again.')
     }
   }
