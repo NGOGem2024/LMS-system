@@ -11,12 +11,12 @@ import {
   Box,
   TextField,
   InputAdornment,
+  LinearProgress,
   Chip,
   Pagination,
   Alert,
   CardActions,
-  Fab,
-  LinearProgress
+  Fab
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -25,7 +25,6 @@ import {
 } from '@mui/icons-material'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
-import { CourseGridSkeleton, PageLoading } from '../ui/LoadingComponents'
 
 interface Course {
   _id: string
@@ -37,15 +36,9 @@ interface Course {
   }
   category: string
   imageUrl?: string
-  thumbnail?: string
   enrolledCount: number
   isEnrolled?: boolean
   progress?: number
-}
-
-interface CoursesResponse {
-  courses: Course[]
-  totalRecords: number
 }
 
 const Courses = () => {
@@ -57,7 +50,6 @@ const Courses = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalRecords, setTotalRecords] = useState(0)
   const coursesPerPage = 8
 
   useEffect(() => {
@@ -66,64 +58,19 @@ const Courses = () => {
       setError(null)
       
       try {
-        console.log('Fetching courses...')
-        const res = await axios.get<CoursesResponse>('/api/courses', {
-          // Add a longer timeout for the request
-          timeout: 10000
-        })
-        console.log('Courses API response:', res.data)
-        
-        // Extract courses and totalRecords from the response
-        const { courses, totalRecords } = res.data
-        
-        setCourses(courses)
-        setFilteredCourses(courses)
-        setTotalRecords(totalRecords)
-        setTotalPages(Math.ceil(courses.length / coursesPerPage))
-        
-        console.log(`Total records: ${totalRecords}`)
+        const res = await axios.get('/api/courses')
+        setCourses(res.data)
+        setFilteredCourses(res.data)
+        setTotalPages(Math.ceil(res.data.length / coursesPerPage))
       } catch (err: any) {
-        console.error('Failed to load courses:', err)
-        if (err.response) {
-          // The request was made and the server responded with a status code
-          console.error('Error status:', err.response.status)
-          console.error('Error data:', err.response.data)
-          
-          if (err.response.status === 503) {
-            setError('The server is temporarily unavailable. Please try again in a moment.')
-          } else if (err.response.status === 401) {
-            setError('Your session has expired. Please log in again.')
-          } else {
-            setError(err.response.data?.error || 'Failed to load courses. Please try again later.')
-          }
-        } else if (err.request) {
-          // The request was made but no response was received
-          console.error('No response received:', err.request)
-          setError('No response from server. Please check your connection.')
-        } else {
-          // Something happened in setting up the request
-          setError('Failed to load courses. Please try again later.')
-        }
+        setError('Failed to load courses. Please try again later.')
+        console.error(err)
       } finally {
         setLoading(false)
       }
     }
     
     fetchCourses()
-    
-    // Add an automatic retry if coming from course creation
-    // This helps when the database might need extra time to reflect new courses
-    const fromCreateCourse = window.location.search.includes('newCourse=true')
-    if (fromCreateCourse) {
-      console.log('Detected navigation from course creation, scheduling retry...')
-      // Retry after 2 seconds
-      const retryTimer = setTimeout(() => {
-        console.log('Retrying course fetch after creation...')
-        fetchCourses()
-      }, 2000)
-      
-      return () => clearTimeout(retryTimer)
-    }
   }, [])
 
   useEffect(() => {
@@ -165,13 +112,7 @@ const Courses = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <PageLoading />
-        <Box sx={{ mb: 4, pt: 2 }}>
-          <Typography variant="h4" component="h1" sx={{ opacity: 0.5 }}>
-            Courses
-          </Typography>
-        </Box>
-        <CourseGridSkeleton count={8} />
+        <LinearProgress />
       </Container>
     )
   }
@@ -182,7 +123,7 @@ const Courses = () => {
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <SchoolIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
           <Typography variant="h4" component="h1">
-            Courses {totalRecords > 0 && <Typography component="span" variant="subtitle1" color="text.secondary">({totalRecords} total)</Typography>}
+            Courses
           </Typography>
         </Box>
         
@@ -200,42 +141,7 @@ const Courses = () => {
       </Box>
       
       {error && (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 3 }}
-          action={
-            <Button 
-              color="inherit" 
-              size="small"
-              onClick={() => {
-                setLoading(true);
-                setError(null);
-                setTimeout(() => {
-                  const fetchCourses = async () => {
-                    try {
-                      console.log('Retrying course fetch...');
-                      const res = await axios.get<CoursesResponse>('/api/courses', {
-                        timeout: 15000
-                      });
-                      setCourses(res.data.courses);
-                      setFilteredCourses(res.data.courses);
-                      setTotalRecords(res.data.totalRecords);
-                      setTotalPages(Math.ceil(res.data.courses.length / coursesPerPage));
-                    } catch (err: any) {
-                      console.error('Retry failed:', err);
-                      setError('Retry failed. Please try again later.');
-                    } finally {
-                      setLoading(false);
-                    }
-                  };
-                  fetchCourses();
-                }, 1000);
-              }}
-            >
-              Retry
-            </Button>
-          }
-        >
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
@@ -293,7 +199,7 @@ const Courses = () => {
                   <CardMedia
                     component="img"
                     height="140"
-                    image={course.thumbnail || course.imageUrl || `https://source.unsplash.com/random?education,${course._id}`}
+                    image={course.imageUrl || `https://source.unsplash.com/random?education,${course._id}`}
                     alt={course.title}
                   />
                   <CardContent sx={{ flexGrow: 1 }}>

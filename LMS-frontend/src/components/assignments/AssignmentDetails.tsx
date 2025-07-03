@@ -37,12 +37,8 @@ interface Assignment {
   description: string
   instructions: string
   dueDate: string
-  totalPoints: number
-  passingPoints: number
-  status: 'draft' | 'published' | 'archived'
-  submissionStatus?: 'pending' | 'overdue' | 'submitted' | 'late' | 'graded' | 'passed' | 'failed' | 'resubmit' | 'missed'
-  allowLateSubmissions: boolean
-  latePenalty: number 
+  points: number
+  status: 'completed' | 'pending' | 'overdue'
   course: {
     _id: string
     title: string
@@ -52,7 +48,6 @@ interface Assignment {
     submittedAt: string
     grade?: number
     feedback?: string
-    status?: string
   }
 }
 
@@ -68,18 +63,11 @@ const AssignmentDetails = () => {
       setError(null)
       
       try {
-        console.log(`Fetching assignment with id: ${id}`)
         const res = await axios.get(`/api/assignments/${id}`)
-        console.log('Assignment response:', res.data)
-        
-        if (res.data) {
-          setAssignment(res.data)
-        } else {
-          setError('Assignment not found or invalid response format')
-        }
+        setAssignment(res.data)
       } catch (err: any) {
-        console.error('Error fetching assignment details:', err)
-        setError(err.response?.data?.error || 'Failed to load assignment details. Please try again later.')
+        setError('Failed to load assignment details. Please try again later.')
+        console.error(err)
       } finally {
         setLoading(false)
       }
@@ -92,46 +80,11 @@ const AssignmentDetails = () => {
 
   const getStatusChip = (status: string) => {
     switch (status) {
-      case 'submitted':
+      case 'completed':
         return <Chip 
           icon={<CompletedIcon />} 
-          label="Submitted" 
+          label="Completed" 
           color="success" 
-          variant="filled" 
-        />
-      case 'graded':
-        return <Chip 
-          icon={<CompletedIcon />} 
-          label="Graded" 
-          color="success" 
-          variant="filled" 
-        />
-      case 'passed':
-        return <Chip 
-          icon={<CompletedIcon />} 
-          label="Passed" 
-          color="success" 
-          variant="filled" 
-        />
-      case 'failed':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Failed" 
-          color="error" 
-          variant="filled" 
-        />
-      case 'resubmit':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Needs Revision" 
-          color="warning" 
-          variant="filled" 
-        />
-      case 'late':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Late" 
-          color="warning" 
           variant="filled" 
         />
       case 'overdue':
@@ -141,14 +94,6 @@ const AssignmentDetails = () => {
           color="error" 
           variant="filled" 
         />
-      case 'missed':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Missed" 
-          color="error" 
-          variant="filled" 
-        />
-      case 'pending':
       default:
         return <Chip 
           icon={<PendingIcon />} 
@@ -207,7 +152,7 @@ const AssignmentDetails = () => {
                   {assignment.title}
                 </Typography>
               </Box>
-              {getStatusChip(assignment.submissionStatus || 'pending')}
+              {getStatusChip(assignment.status)}
             </Box>
             
             <Divider sx={{ my: 2 }} />
@@ -247,7 +192,7 @@ const AssignmentDetails = () => {
                     </ListItemIcon>
                     <ListItemText 
                       primary="Points" 
-                      secondary={assignment.totalPoints} 
+                      secondary={assignment.points} 
                     />
                   </ListItem>
                   {assignment.submission && assignment.submission.submittedAt && (
@@ -286,9 +231,7 @@ const AssignmentDetails = () => {
               {assignment.instructions}
             </Typography>
             
-            {!assignment.submission && 
-             !['submitted', 'late', 'graded', 'passed', 'failed', 'resubmit'].includes(assignment.submissionStatus || '') && 
-             assignment.submissionStatus !== 'missed' && (
+            {!assignment.submission && assignment.status !== 'completed' && (
               <Box sx={{ mt: 4 }}>
                 <Button
                   variant="contained"
@@ -324,22 +267,7 @@ const AssignmentDetails = () => {
                   {assignment.submission.grade !== undefined ? (
                     <Box sx={{ mt: 3 }}>
                       <Typography variant="subtitle1" gutterBottom>
-                        Grade: {assignment.submission.grade} / {assignment.totalPoints}
-                        {assignment.submission.grade >= assignment.totalPoints * 0.6 ? (
-                          <Chip 
-                            label="Passed" 
-                            color="success" 
-                            size="small" 
-                            sx={{ ml: 1 }}
-                          />
-                        ) : (
-                          <Chip 
-                            label="Failed" 
-                            color="error" 
-                            size="small" 
-                            sx={{ ml: 1 }}
-                          />
-                        )}
+                        Grade: {assignment.submission.grade} / {assignment.points}
                       </Typography>
                       
                       {assignment.submission.feedback && (
@@ -360,34 +288,12 @@ const AssignmentDetails = () => {
                       Your submission is under review.
                     </Alert>
                   )}
-                  
-                  {assignment.submission.status === 'returned' && (
-                    <Box sx={{ mt: 3 }}>
-                      <Alert severity="warning">
-                        Your submission needs revision. Please review the feedback and resubmit.
-                      </Alert>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        component={RouterLink}
-                        to={`/assignments/${assignment._id}/submit`}
-                        sx={{ mt: 2 }}
-                      >
-                        Resubmit Assignment
-                      </Button>
-                    </Box>
-                  )}
                 </>
               ) : (
                 <>
-                  {assignment.submissionStatus === 'missed' ? (
+                  {assignment.status === 'overdue' ? (
                     <Alert severity="error">
-                      This assignment is past due and no longer accepts submissions.
-                    </Alert>
-                  ) : assignment.submissionStatus === 'overdue' ? (
-                    <Alert severity="warning">
-                      This assignment is past due, but late submissions are still accepted. 
-                      {assignment.latePenalty > 0 && ` Note that a ${assignment.latePenalty}% penalty will apply.`}
+                      This assignment is past due. Contact your instructor if you still need to submit.
                     </Alert>
                   ) : (
                     <Alert severity="warning">
@@ -395,18 +301,16 @@ const AssignmentDetails = () => {
                     </Alert>
                   )}
                   
-                  {assignment.submissionStatus !== 'missed' && (
-                    <Box sx={{ mt: 3 }}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        component={RouterLink}
-                        to={`/assignments/${assignment._id}/submit`}
-                      >
-                        Submit Assignment
-                      </Button>
-                    </Box>
-                  )}
+                  <Box sx={{ mt: 3 }}>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      component={RouterLink}
+                      to={`/assignments/${assignment._id}/submit`}
+                    >
+                      Submit Assignment
+                    </Button>
+                  </Box>
                 </>
               )}
             </CardContent>

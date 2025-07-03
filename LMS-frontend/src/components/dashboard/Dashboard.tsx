@@ -14,9 +14,9 @@ import {
   List,
   ListItem,
   ListItemText,
+  LinearProgress,
   Alert,
-  Link,
-  LinearProgress
+  Link
 } from '@mui/material'
 import {
   School as CourseIcon,
@@ -28,11 +28,6 @@ import {
 } from '@mui/icons-material'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
-import { 
-  DashboardCardSkeleton, 
-  AssignmentListSkeleton, 
-  PageLoading 
-} from '../ui/LoadingComponents'
 
 interface Course {
   _id: string
@@ -60,17 +55,6 @@ interface Assignment {
     _id: string
     title: string
   }
-  status?: string
-}
-
-interface CoursesResponse {
-  courses: Course[]
-  totalRecords: number
-}
-
-interface AssignmentsResponse {
-  assignments: Assignment[]
-  totalRecords: number
 }
 
 const Dashboard = () => {
@@ -97,12 +81,12 @@ const Dashboard = () => {
       
       try {
         // Fetch enrolled courses
-        const coursesRes = await axios.get<CoursesResponse>('/api/courses/enrolled')
-        setCourses(coursesRes.data.courses.slice(0, 3)) // Show only 3 latest courses
+        const coursesRes = await axios.get('/api/courses/enrolled')
+        setCourses(coursesRes.data.slice(0, 3)) // Show only 3 latest courses
         
         // Fetch upcoming assignments
-        const assignmentsRes = await axios.get<AssignmentsResponse>('/api/assignments/upcoming')
-        setAssignments(assignmentsRes.data.assignments ? assignmentsRes.data.assignments.slice(0, 5) : []) // Show only 5 upcoming assignments
+        const assignmentsRes = await axios.get('/api/assignments/upcoming')
+        setAssignments(assignmentsRes.data.slice(0, 5)) // Show only 5 upcoming assignments
         
         // Fetch progress statistics
         const statsRes = await axios.get('/api/progress/stats')
@@ -110,12 +94,11 @@ const Dashboard = () => {
         
         // If API is not ready, calculate some stats from the courses and assignments
         if (!statsRes.data || !statsRes.data.totalCourses) {
-          const allCourses = coursesRes.data.courses as Course[]
-          const upcomingAssignments = assignmentsRes.data.assignments || []
-          const completedCourses = allCourses.filter((c: Course) => c.progress === 100).length
-          const inProgressCourses = allCourses.filter((c: Course) => c.progress > 0 && c.progress < 100).length
-          const totalAssignments = upcomingAssignments.length
-          const completedAssignments = upcomingAssignments.filter((a: Assignment) => a.status === 'completed').length
+          const allCourses = coursesRes.data
+          const completedCourses = allCourses.filter(c => c.progress === 100).length
+          const inProgressCourses = allCourses.filter(c => c.progress > 0 && c.progress < 100).length
+          const totalAssignments = assignmentsRes.data.length
+          const completedAssignments = assignmentsRes.data.filter(a => a.status === 'completed').length
           
           setProgressStats({
             totalCourses: allCourses.length,
@@ -125,7 +108,7 @@ const Dashboard = () => {
             completedAssignments,
             pendingAssignments: totalAssignments - completedAssignments,
             overallProgress: allCourses.length > 0 
-              ? allCourses.reduce((sum: number, course: Course) => sum + course.progress, 0) / allCourses.length
+              ? allCourses.reduce((sum, course) => sum + course.progress, 0) / allCourses.length
               : 0
           })
         }
@@ -143,22 +126,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <PageLoading />
-        <Grid container spacing={3}>
-          {/* Dashboard cards skeleton */}
-          <Grid item xs={12} md={6}>
-            <DashboardCardSkeleton />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <DashboardCardSkeleton />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <DashboardCardSkeleton height={250} />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <DashboardCardSkeleton height={250} />
-          </Grid>
-        </Grid>
+        <LinearProgress />
       </Container>
     )
   }

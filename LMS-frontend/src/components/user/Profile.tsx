@@ -22,8 +22,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Chip,
-  Skeleton
+  Chip
 } from '@mui/material'
 import {
   Person as PersonIcon,
@@ -35,12 +34,6 @@ import {
 } from '@mui/icons-material'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
-import { 
-  PageLoading, 
-  ProfileSkeleton, 
-  LoadingButton, 
-  ContentPlaceholder 
-} from '../ui/LoadingComponents'
 
 interface ProfileData {
   name: string
@@ -63,13 +56,11 @@ interface Achievement {
 }
 
 const Profile = () => {
-  const { user, updateUser } = useContext(AuthContext)
+  const { user } = useContext(AuthContext)
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isChangingPassword, setIsChangingPassword] = useState(false)
   
   // Form state
   const [name, setName] = useState('')
@@ -98,36 +89,21 @@ const Profile = () => {
       
       try {
         const res = await axios.get('/api/users/profile')
-        // Handle the API response structure which includes data in a nested 'data' property
-        const userData = res.data.data || res.data;
-        
-        // Use avatar from auth context if available (to ensure consistency)
-        const avatarUrl = user?.profile?.avatar || userData.profile?.avatar;
-        
-        setProfileData({
-          name: userData.name,
-          email: userData.email,
-          role: userData.role,
-          bio: userData.profile?.bio || '',
-          avatar: avatarUrl,
-          enrolledCourses: userData.enrolledCourses || 0,
-          completedCourses: userData.completedCourses || 0,
-          achievements: userData.achievements || []
-        });
+        setProfileData(res.data)
         
         // Initialize form fields
-        setName(userData.name)
-        setBio(userData.profile?.bio || '')
+        setName(res.data.name)
+        setBio(res.data.bio || '')
       } catch (err: any) {
         setError('Failed to load profile data. Please try again later.')
-        console.error('Profile fetch error:', err)
+        console.error(err)
       } finally {
         setLoading(false)
       }
     }
     
     fetchProfileData()
-  }, [user])
+  }, [])
 
   const validateProfileForm = () => {
     const errors: { name?: string; bio?: string } = {}
@@ -184,7 +160,6 @@ const Profile = () => {
     
     setError(null)
     setSuccess(null)
-    setIsSaving(true)
     
     try {
       // Create form data for multipart/form-data request (for file upload)
@@ -197,21 +172,9 @@ const Profile = () => {
       }
       
       // Use multipart/form-data request
-      const response = await axios.put('/api/users/profile', formData, {
+      await axios.put('/api/users/profile', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      // Get the updated user data from the response
-      const updatedUserData = response.data.data;
-      
-      // Update user in auth context to persist the changes
-      updateUser({
-        name: updatedUserData.name,
-        profile: {
-          avatar: updatedUserData.profile?.avatar,
-          bio: updatedUserData.profile?.bio
         }
       });
       
@@ -221,16 +184,14 @@ const Profile = () => {
       if (profileData) {
         setProfileData({
           ...profileData,
-          name: updatedUserData.name,
-          bio: updatedUserData.profile?.bio || '',
-          avatar: updatedUserData.profile?.avatar
+          name,
+          bio,
+          avatar: avatarPreview || profileData.avatar
         })
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update profile. Please try again.')
       console.error(err)
-    } finally {
-      setIsSaving(false)
     }
   }
   
@@ -281,7 +242,6 @@ const Profile = () => {
     
     setError(null)
     setSuccess(null)
-    setIsChangingPassword(true)
     
     try {
       await axios.put('/api/users/password', {
@@ -302,95 +262,13 @@ const Profile = () => {
         currentPassword: err.response?.data?.message || 'Failed to update password. Please try again.'
       }))
       console.error(err)
-    } finally {
-      setIsChangingPassword(false)
     }
   }
-
-  // Add a function to get the full image URL
-  const getFullImageUrl = (imagePath: string | undefined) => {
-    if (!imagePath) return undefined;
-    
-    // If it's already a data URL (from preview), return as is
-    if (imagePath.startsWith('data:')) {
-      return imagePath;
-    }
-    
-    // If it's a relative path, use it as is (the proxy will handle it)
-    if (imagePath.startsWith('/')) {
-      return imagePath;
-    }
-    
-    return imagePath;
-  };
 
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <PageLoading />
-        <Typography variant="h4" sx={{ mb: 4, opacity: 0.7 }}>
-          Profile
-        </Typography>
-        
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3 }}>
-              <ProfileSkeleton />
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h5" sx={{ mb: 3, opacity: 0.7 }}>
-                Personal Information
-              </Typography>
-              <Box sx={{ mb: 4 }}>
-                <ContentPlaceholder lines={5} />
-              </Box>
-            </Paper>
-            
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" sx={{ mb: 3, opacity: 0.7 }}>
-                Stats & Achievements
-              </Typography>
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={6}>
-                  <Card>
-                    <CardContent>
-                      <Skeleton variant="text" height={24} width="60%" />
-                      <Skeleton variant="text" height={40} width="40%" />
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={6}>
-                  <Card>
-                    <CardContent>
-                      <Skeleton variant="text" height={24} width="60%" />
-                      <Skeleton variant="text" height={40} width="40%" />
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-              
-              <Typography variant="h6" sx={{ mb: 2, opacity: 0.7 }}>
-                Achievements
-              </Typography>
-              <List>
-                {[1, 2, 3].map((_, index) => (
-                  <ListItem key={index} sx={{ borderBottom: '1px solid', borderColor: 'divider', py: 2 }}>
-                    <ListItemIcon>
-                      <Skeleton variant="circular" width={40} height={40} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={<Skeleton variant="text" width="70%" />} 
-                      secondary={<Skeleton variant="text" width="90%" />} 
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
-          </Grid>
-        </Grid>
+        <LinearProgress />
       </Container>
     )
   }
@@ -404,14 +282,6 @@ const Profile = () => {
       </Container>
     )
   }
-
-  // Log avatar sources for debugging
-  console.log('Avatar sources:', {
-    preview: avatarPreview,
-    profileData: profileData?.avatar,
-    userProfile: user?.profile?.avatar,
-    baseUrl: window.location.origin
-  });
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -436,7 +306,7 @@ const Profile = () => {
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Avatar
-              src={getFullImageUrl(avatarPreview || profileData.avatar || user?.profile?.avatar)}
+              src={avatarPreview || profileData.avatar}
               sx={{
                 width: 100,
                 height: 100,
@@ -555,7 +425,7 @@ const Profile = () => {
                 />
                 <label htmlFor="avatar-upload">
                   <Avatar
-                    src={getFullImageUrl(avatarPreview || profileData.avatar || user?.profile?.avatar)}
+                    src={avatarPreview || profileData.avatar}
                     sx={{
                       width: 100,
                       height: 100,
@@ -631,16 +501,13 @@ const Profile = () => {
               </Grid>
               
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                <LoadingButton loading={isSaving}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </LoadingButton>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  startIcon={<SaveIcon />}
+                >
+                  Save Changes
+                </Button>
               </Box>
             </Box>
           </Paper>
@@ -715,12 +582,8 @@ const Profile = () => {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setPasswordDialogOpen(false)} disabled={isChangingPassword}>Cancel</Button>
-            <LoadingButton loading={isChangingPassword}>
-              <Button type="submit" variant="contained" disabled={isChangingPassword}>
-                {isChangingPassword ? 'Updating...' : 'Update Password'}
-              </Button>
-            </LoadingButton>
+            <Button onClick={() => setPasswordDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained">Update Password</Button>
           </DialogActions>
         </Box>
       </Dialog>

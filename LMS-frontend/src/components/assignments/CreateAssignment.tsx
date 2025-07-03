@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent, ReactNode } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Container,
@@ -15,12 +15,8 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  Grid,
-  Switch,
-  FormControlLabel,
-  InputAdornment
+  Grid
 } from '@mui/material'
-import { SelectChangeEvent } from '@mui/material/Select'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
@@ -29,11 +25,6 @@ import axios from 'axios'
 interface Course {
   _id: string;
   title: string;
-}
-
-interface CoursesResponse {
-  courses: Course[];
-  totalRecords: number;
 }
 
 interface Module {
@@ -86,8 +77,8 @@ const CreateAssignment = () => {
     const fetchCourses = async () => {
       setLoadingCourses(true);
       try {
-        const res = await axios.get<CoursesResponse>('/api/courses');
-        setCourses(res.data.courses);
+        const res = await axios.get('/api/courses');
+        setCourses(res.data);
       } catch (err) {
         console.error('Error fetching courses:', err);
         setError('Failed to load courses. Please try again later.');
@@ -100,73 +91,28 @@ const CreateAssignment = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch modules when course changes, but with more robust error handling
+    // Fetch modules when course changes
     if (formData.course) {
-      setLoadingModules(true);
-      setError(null); // Clear previous errors
-      
-      // Set a timeout for the module fetch
-      const fetchModulesWithTimeout = async () => {
+      const fetchModules = async () => {
+        setLoadingModules(true);
         try {
-          // Create a timeout promise
-          const timeoutPromise = new Promise<{ data: Module[] }>((_, reject) => {
-            setTimeout(() => reject(new Error('Module fetch timed out')), 8000); // Increased timeout to 8 seconds
-          });
-          
-          // Actual fetch promise
-          const fetchPromise = axios.get<Module[]>(`/api/courses/${formData.course}/modules`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          
-          // Race them
-          const res = await Promise.race([fetchPromise, timeoutPromise]);
-          setModules(res.data || []);
-          
-          if (res.data && res.data.length === 0) {
-            console.log('No modules found for this course');
-          }
-        } catch (err: any) {
-          console.error('Error or timeout fetching modules:', err);
-          // Set modules to empty array
+          const res = await axios.get(`/api/courses/${formData.course}/modules`);
+          setModules(res.data);
+        } catch (err) {
+          console.error('Error fetching modules:', err);
           setModules([]);
-          
-          // Handle based on error type
-          if (err.response && err.response.status === 401) {
-            console.log('Authentication issue when fetching modules. Continuing without modules.');
-            // Don't show error to user if it's just an auth issue
-          } else if (err.response && err.response.status === 403) {
-            console.log('Authorization issue when fetching modules. Continuing without modules.');
-            // Don't show error to user if it's just an auth issue
-          } else {
-            // Show a user-friendly message
-            setError('Unable to load modules. You can continue creating the assignment without selecting a module.');
-          }
-          // Log the error for debugging
-          console.log('Continuing without modules - they will be optional');
         } finally {
           setLoadingModules(false);
         }
       };
       
-      fetchModulesWithTimeout();
+      fetchModules();
     } else {
       setModules([]);
     }
   }, [formData.course]);
 
-  // Handle change for text inputs
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-  
-  // Handle change for select inputs
-  const handleSelectChange = (e: SelectChangeEvent<unknown>, child: ReactNode) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
     if (name) {
       setFormData({
@@ -180,14 +126,6 @@ const CreateAssignment = () => {
     setFormData({
       ...formData,
       dueDate: newDate
-    });
-  };
-  
-  const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: checked
     });
   };
 
@@ -204,49 +142,22 @@ const CreateAssignment = () => {
     }
     
     try {
-      // Create a copy of formData with module field only if it's not empty
-      const submissionData = { ...formData } as Partial<AssignmentFormData>;
-      if (!submissionData.module || submissionData.module === '') {
-        delete submissionData.module; // Remove module if it's empty
-      }
+      const response = await axios.post('/api/assignments', formData);
+      console.log('Assignment creation response:', response.data);
       
-      // Set longer timeout for the assignment creation request
-      const createAssignmentWithTimeout = async () => {
-        try {
-          // Set up axios with a longer timeout
-          const response = await axios({
-            method: 'post',
-            url: '/api/assignments',
-            data: submissionData,
-            timeout: 15000 // 15 seconds timeout
-          });
-          
-          console.log('Assignment creation response:', response.data);
-          
-          setSuccess('Assignment created successfully!');
-          setTimeout(() => {
-            navigate('/assignments');
-          }, 2000);
-        } catch (err: any) {
-          if (err.code === 'ECONNABORTED') {
-            throw new Error('Request timed out. The server might be busy. Please try again.');
-          }
-          throw err; // Re-throw other errors to be caught by the outer try/catch
-        }
-      };
-      
-      await createAssignmentWithTimeout();
+      setSuccess('Assignment created successfully!');
+      setTimeout(() => {
+        navigate('/assignments');
+      }, 2000);
     } catch (err: any) {
       console.error('Assignment creation error:', err);
       
       if (err.response) {
-        const errorMessage = err.response.data?.error || 'Failed to create assignment. Please try again.';
-        setError(`Server Error: ${errorMessage}`);
-        console.error('Error response:', err.response.data);
+        setError(err.response.data?.error || 'Failed to create assignment. Please try again.');
       } else if (err.request) {
         setError('No response received from server. Please check your connection and try again.');
       } else {
-        setError('An error occurred while creating the assignment. ' + err.message);
+        setError('An error occurred while creating the assignment. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -282,7 +193,7 @@ const CreateAssignment = () => {
               label="Assignment Title"
               name="title"
               value={formData.title}
-              onChange={handleInputChange}
+              onChange={handleChange}
               disabled={loading}
               error={!formData.title && error !== null}
               helperText={!formData.title && error !== null ? 'Title is required' : ''}
@@ -298,7 +209,7 @@ const CreateAssignment = () => {
               label="Short Description"
               name="description"
               value={formData.description}
-              onChange={handleInputChange}
+              onChange={handleChange}
               disabled={loading}
               error={!formData.description && error !== null}
               helperText={!formData.description && error !== null ? 'Description is required' : ''}
@@ -314,7 +225,7 @@ const CreateAssignment = () => {
               label="Detailed Instructions"
               name="instructions"
               value={formData.instructions}
-              onChange={handleInputChange}
+              onChange={handleChange}
               disabled={loading}
               error={!formData.instructions && error !== null}
               helperText={!formData.instructions && error !== null ? 'Instructions are required' : ''}
@@ -330,7 +241,7 @@ const CreateAssignment = () => {
                     name="course"
                     value={formData.course}
                     label="Course"
-                    onChange={handleSelectChange}
+                    onChange={handleChange}
                     disabled={loading || loadingCourses}
                   >
                     {courses.map((course) => (
@@ -346,41 +257,23 @@ const CreateAssignment = () => {
               </Grid>
               
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth variant="outlined" sx={{ mt: 3 }} disabled={loadingModules}>
-                  <InputLabel id="module-label">Module {loadingModules ? '(Loading...)' : '(Optional)'}</InputLabel>
+                <FormControl fullWidth>
+                  <InputLabel id="module-label">Module (Optional)</InputLabel>
                   <Select
                     labelId="module-label"
                     id="module"
                     name="module"
                     value={formData.module}
-                    onChange={handleSelectChange}
-                    label={`Module ${loadingModules ? '(Loading...)' : '(Optional)'}`}
+                    label="Module (Optional)"
+                    onChange={handleChange}
+                    disabled={loading || loadingModules || !formData.course}
                   >
-                    <MenuItem value="">
-                      <em>None (Optional)</em>
-                    </MenuItem>
-                    {modules.length > 0 ? (
-                      modules.map(module => (
-                        <MenuItem key={module._id} value={module._id}>
-                          {module.title}
-                        </MenuItem>
-                      ))
-                    ) : (
-                      <MenuItem value="" disabled>
-                        {loadingModules ? 'Loading modules...' : 'No modules available'}
+                    {modules.map((module) => (
+                      <MenuItem key={module._id} value={module._id}>
+                        {module.title}
                       </MenuItem>
-                    )}
+                    ))}
                   </Select>
-                  {error && error.includes('modules') && (
-                    <FormHelperText error>
-                      {error}
-                    </FormHelperText>
-                  )}
-                  {!loadingModules && modules.length === 0 && !error && (
-                    <FormHelperText>
-                      No modules found for this course. You can create the assignment without a module.
-                    </FormHelperText>
-                  )}
                 </FormControl>
               </Grid>
             </Grid>
@@ -412,7 +305,7 @@ const CreateAssignment = () => {
                     name="submissionType"
                     value={formData.submissionType}
                     label="Submission Type"
-                    onChange={handleSelectChange}
+                    onChange={handleChange}
                     disabled={loading}
                   >
                     <MenuItem value="file">File Upload</MenuItem>
@@ -424,7 +317,7 @@ const CreateAssignment = () => {
               </Grid>
             </Grid>
             
-            <Grid container spacing={2} sx={{ mt: 1 }}> 
+            <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -433,7 +326,7 @@ const CreateAssignment = () => {
                   name="totalPoints"
                   type="number"
                   value={formData.totalPoints}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                   disabled={loading}
                   inputProps={{ min: 1 }}
                 />
@@ -447,7 +340,7 @@ const CreateAssignment = () => {
                   name="passingPoints"
                   type="number"
                   value={formData.passingPoints}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                   disabled={loading}
                   inputProps={{ min: 0, max: formData.totalPoints }}
                   error={formData.passingPoints > formData.totalPoints}
@@ -466,7 +359,7 @@ const CreateAssignment = () => {
                     name="status"
                     value={formData.status}
                     label="Status"
-                    onChange={handleSelectChange}
+                    onChange={handleChange}
                     disabled={loading}
                   >
                     <MenuItem value="draft">Draft</MenuItem>
@@ -480,23 +373,18 @@ const CreateAssignment = () => {
               
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel id="allow-late-label">Allow Late Submissions</InputLabel>
+                  <InputLabel id="late-submissions-label">Allow Late Submissions</InputLabel>
                   <Select
-                    labelId="allow-late-label"
+                    labelId="late-submissions-label"
                     id="allowLateSubmissions"
                     name="allowLateSubmissions"
-                    value={formData.allowLateSubmissions ? "true" : "false"}
+                    value={formData.allowLateSubmissions}
                     label="Allow Late Submissions"
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        allowLateSubmissions: e.target.value === "true"
-                      });
-                    }}
+                    onChange={handleChange}
                     disabled={loading}
                   >
-                    <MenuItem value="true">Yes</MenuItem>
-                    <MenuItem value="false">No</MenuItem>
+                    <MenuItem value={true}>Yes</MenuItem>
+                    <MenuItem value={false}>No</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -511,7 +399,7 @@ const CreateAssignment = () => {
                 name="latePenalty"
                 type="number"
                 value={formData.latePenalty}
-                onChange={handleInputChange}
+                onChange={handleChange}
                 disabled={loading}
                 inputProps={{ min: 0, max: 100 }}
                 helperText="Percentage points deducted for late submissions"

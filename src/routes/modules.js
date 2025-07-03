@@ -22,7 +22,7 @@ router.use(tenantMiddleware);
 
 // Module routes
 router.route('/')
-  .get(getModules)
+  .get(protect, getModules)
   .post(protect, authorize('instructor', 'admin'), createModule);
 
 router.route('/:id')

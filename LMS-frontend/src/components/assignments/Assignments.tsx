@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { Link as RouterLink } from 'react-router-dom'
 import AuthContext from '../../context/AuthContext'
 import {
   Container,
@@ -12,6 +12,7 @@ import {
   CardActions,
   Button,
   Chip,
+  LinearProgress,
   Alert,
   Tabs,
   Tab,
@@ -22,24 +23,16 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent,
-  LinearProgress,
-  Skeleton
+  SelectChangeEvent
 } from '@mui/material'
 import {
   Assignment as AssignmentIcon,
   Search as SearchIcon,
   CheckCircle as CompletedIcon,
   Schedule as PendingIcon,
-  Warning as OverdueIcon,
-  ErrorOutline as ErrorIcon
+  Warning as OverdueIcon
 } from '@mui/icons-material'
 import axios from 'axios'
-import { 
-  PageLoading, 
-  AssignmentListSkeleton,
-  TableSkeleton
-} from '../ui/LoadingComponents'
 
 interface Assignment {
   _id: string
@@ -50,9 +43,8 @@ interface Assignment {
     _id: string
     title: string
   }
-  totalPoints: number
-  status: 'draft' | 'published' | 'archived'
-  submissionStatus?: 'pending' | 'overdue' | 'submitted' | 'late' | 'graded' | 'passed' | 'failed' | 'resubmit' | 'missed'
+  points: number
+  status: 'completed' | 'pending' | 'overdue'
 }
 
 interface Course {
@@ -60,100 +52,41 @@ interface Course {
   title: string
 }
 
-interface CoursesResponse {
-  courses: Course[]
-  totalRecords: number
-}
-
-interface AssignmentsResponse {
-  assignments: Assignment[]
-  totalRecords: number
-}
-
 const Assignments = () => {
-  const { user, token, tenantId, logout } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([])
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [authError, setAuthError] = useState<boolean>(false)
   const [tabValue, setTabValue] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
   const [courseFilter, setCourseFilter] = useState<string>('all')
-  const [totalAssignments, setTotalAssignments] = useState(0)
 
   useEffect(() => {
     const fetchAssignments = async () => {
       setLoading(true)
       setError(null)
-      setAuthError(false)
       
       try {
-        console.log('Fetching assignments...')
-        console.log('Current token:', token ? `${token.substring(0, 20)}...` : 'null')
-        console.log('Current tenant ID:', tenantId)
-        
-        if (!token) {
-          console.error('No authentication token available');
-          setAuthError(true);
-          setLoading(false);
-          return;
-        }
-        
-        // Set up config with explicit headers
-        const config = {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'x-tenant-id': tenantId
-          }
-        };
-        
         // Fetch assignments
-        const assignmentsRes = await axios.get<AssignmentsResponse>('/api/assignments', config)
-        console.log('Assignments response:', assignmentsRes.data)
-        
-        if (assignmentsRes.data && assignmentsRes.data.assignments) {
-          setAssignments(assignmentsRes.data.assignments)
-          setFilteredAssignments(assignmentsRes.data.assignments)
-          setTotalAssignments(assignmentsRes.data.totalRecords || assignmentsRes.data.assignments.length)
-        } else {
-          console.error('Invalid assignments response format:', assignmentsRes.data)
-          setError('Invalid response format from server')
-        }
+        const assignmentsRes = await axios.get('/api/assignments')
+        setAssignments(assignmentsRes.data)
+        setFilteredAssignments(assignmentsRes.data)
         
         // Fetch courses for filter
-        try {
-          const coursesRes = await axios.get<CoursesResponse>('/api/courses/enrolled', config)
-          if (coursesRes.data && coursesRes.data.courses) {
-            setCourses(coursesRes.data.courses)
-          }
-        } catch (courseErr) {
-          console.error('Error fetching courses:', courseErr)
-          // Don't set error for courses as assignments can still be displayed
-        }
+        const coursesRes = await axios.get('/api/courses/enrolled')
+        setCourses(coursesRes.data)
       } catch (err: any) {
-        console.error('Error fetching assignments:', err)
-        
-        if (err.response?.status === 401) {
-          setAuthError(true);
-        } else {
-          setError(err.response?.data?.error || 'Failed to load assignments. Please try again later.')
-        }
+        setError('Failed to load assignments. Please try again later.')
+        console.error(err)
       } finally {
         setLoading(false)
       }
     }
     
     fetchAssignments()
-  }, [token, tenantId])
-
-  // Handle authentication error
-  const handleRelogin = () => {
-    logout();
-    navigate('/login');
-  }
+  }, [])
 
   useEffect(() => {
     // Filter assignments based on search term, course filter, and tab value
@@ -173,27 +106,13 @@ const Assignments = () => {
       filtered = filtered.filter(assignment => assignment.course._id === courseFilter)
     }
     
-    // Filter by tab (submissionStatus)
+    // Filter by tab (status)
     if (tabValue === 1) {
-      // Pending tab - show pending and overdue
-      filtered = filtered.filter(assignment => 
-        assignment.submissionStatus === 'pending' || 
-        assignment.submissionStatus === 'overdue'
-      )
+      filtered = filtered.filter(assignment => assignment.status === 'pending')
     } else if (tabValue === 2) {
-      // Completed tab - show submitted, late, passed, graded
-      filtered = filtered.filter(assignment => 
-        assignment.submissionStatus === 'submitted' || 
-        assignment.submissionStatus === 'late' || 
-        assignment.submissionStatus === 'passed' || 
-        assignment.submissionStatus === 'graded'
-      )
+      filtered = filtered.filter(assignment => assignment.status === 'completed')
     } else if (tabValue === 3) {
-      // Overdue tab - show overdue and missed
-      filtered = filtered.filter(assignment => 
-        assignment.submissionStatus === 'overdue' || 
-        assignment.submissionStatus === 'missed'
-      )
+      filtered = filtered.filter(assignment => assignment.status === 'overdue')
     }
     
     setFilteredAssignments(filtered)
@@ -209,34 +128,11 @@ const Assignments = () => {
 
   const getStatusChip = (status: string) => {
     switch (status) {
-      case 'submitted':
-      case 'graded':
-      case 'passed':
+      case 'completed':
         return <Chip 
           icon={<CompletedIcon />} 
-          label={status === 'passed' ? 'Passed' : (status === 'graded' ? 'Graded' : 'Submitted')} 
+          label="Completed" 
           color="success" 
-          size="small" 
-        />
-      case 'failed':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Failed" 
-          color="error" 
-          size="small" 
-        />
-      case 'resubmit':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Needs Revision" 
-          color="warning" 
-          size="small" 
-        />
-      case 'late':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Late" 
-          color="warning" 
           size="small" 
         />
       case 'overdue':
@@ -246,14 +142,6 @@ const Assignments = () => {
           color="error" 
           size="small" 
         />
-      case 'missed':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Missed" 
-          color="error" 
-          size="small" 
-        />
-      case 'pending':
       default:
         return <Chip 
           icon={<PendingIcon />} 
@@ -264,63 +152,10 @@ const Assignments = () => {
     }
   }
 
-  if (authError) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 3 }}>
-          <ErrorIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
-          <Typography variant="h5" gutterBottom>Authentication Error</Typography>
-          <Typography variant="body1" align="center" paragraph>
-            Your session has expired or you are not authorized to access this page.
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary"
-            onClick={handleRelogin}
-            sx={{ mt: 2 }}
-          >
-            Log In Again
-          </Button>
-        </Box>
-      </Container>
-    );
-  }
-
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <PageLoading />
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-          <AssignmentIcon sx={{ mr: 1, opacity: 0.5 }} fontSize="large" color="primary" />
-          <Typography variant="h4" component="h1" sx={{ opacity: 0.5 }}>
-            Assignments
-          </Typography>
-        </Box>
-        
-        <Paper sx={{ mb: 4 }}>
-          <Tabs
-            value={0}
-            indicatorColor="primary"
-            textColor="primary"
-            variant="fullWidth"
-          >
-            <Tab label="All" />
-            <Tab label="Pending" />
-            <Tab label="Completed" />
-            <Tab label="Overdue" />
-          </Tabs>
-        </Paper>
-        
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <Box sx={{ flex: 1 }}>
-            <Skeleton variant="rectangular" height={56} width="100%" animation="wave" />
-          </Box>
-          <Box sx={{ width: 200 }}>
-            <Skeleton variant="rectangular" height={56} width="100%" animation="wave" />
-          </Box>
-        </Box>
-        
-        <TableSkeleton rows={5} cols={3} />
+        <LinearProgress />
       </Container>
     )
   }
@@ -433,7 +268,7 @@ const Assignments = () => {
                     <Typography gutterBottom variant="h6" component="div">
                       {assignment.title}
                     </Typography>
-                    {getStatusChip(assignment.submissionStatus || 'pending')}
+                    {getStatusChip(assignment.status)}
                   </Box>
                   
                   <Typography variant="body2" color="text.secondary" sx={{
@@ -457,7 +292,7 @@ const Assignments = () => {
                       Due: {new Date(assignment.dueDate).toLocaleDateString()}
                     </Typography>
                     <Typography variant="body2">
-                      Points: {assignment.totalPoints}
+                      Points: {assignment.points}
                     </Typography>
                   </Box>
                 </CardContent>
@@ -471,7 +306,7 @@ const Assignments = () => {
                   >
                     View Details
                   </Button>
-                  {assignment.submissionStatus === 'pending' && (
+                  {assignment.status === 'pending' && (
                     <Button 
                       size="small" 
                       component={RouterLink} 

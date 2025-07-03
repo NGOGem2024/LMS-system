@@ -2,7 +2,6 @@ import { useState, useEffect, useContext } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { LoadingProvider } from './context/LoadingContext'
 
 // Layout components
 import Layout from './components/layout/Layout'
@@ -98,42 +97,40 @@ function App() {
     <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
       <CssBaseline />
       <AuthProvider>
-        <LoadingProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          
+          {/* Protected routes */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout toggleDarkMode={toggleDarkMode} darkMode={darkMode} />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Dashboard />} />
+            <Route path="courses" element={<Courses />} />
+            <Route path="courses/add" element={<AddCourse />} />
+            <Route path="courses/:id" element={<CourseDetails />} />
+            <Route path="assignments" element={<Assignments />} />
+            <Route path="assignments/create" element={<CreateAssignment />} />
+            <Route path="assignments/:id" element={<AssignmentDetails />} />
+            <Route path="assignments/:id/submit" element={<SubmitAssignment />} />
+            <Route path="quizzes" element={<Quizzes />} />
+            <Route path="quizzes/:id" element={<QuizAttempt />} />
+            <Route path="courses/:courseId/quizzes" element={<Quizzes />} />
+            <Route path="profile" element={<Profile />} />
             
-            {/* Protected routes */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Layout toggleDarkMode={toggleDarkMode} darkMode={darkMode} />
-              </ProtectedRoute>
-            }>
-              <Route index element={<Dashboard />} />
-              <Route path="courses" element={<Courses />} />
-              <Route path="courses/add" element={<AddCourse />} />
-              <Route path="courses/:id" element={<CourseDetails />} />
-              <Route path="assignments" element={<Assignments />} />
-              <Route path="assignments/create" element={<CreateAssignment />} />
-              <Route path="assignments/:id" element={<AssignmentDetails />} />
-              <Route path="assignments/:id/submit" element={<SubmitAssignment />} />
-              <Route path="quizzes" element={<Quizzes />} />
-              <Route path="quizzes/:id" element={<QuizAttempt />} />
-              <Route path="courses/:courseId/quizzes" element={<Quizzes />} />
-              <Route path="profile" element={<Profile />} />
-              
-              {/* Admin routes */}
-              <Route path="admin" element={<AdminDashboard />} />
-              <Route path="admin/users" element={<UserManagement />} />
-              <Route path="admin/courses" element={<CourseManagement />} />
-            </Route>
-            
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </LoadingProvider>
+            {/* Admin routes */}
+            <Route path="admin" element={<AdminDashboard />} />
+            <Route path="admin/users" element={<UserManagement />} />
+            <Route path="admin/courses" element={<CourseManagement />} />
+          </Route>
+          
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </AuthProvider>
     </ThemeProvider>
   )

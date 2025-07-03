@@ -1,62 +1,71 @@
 const Course = require('../models/Course');
-const path = require('path');
-const fs = require('fs');
 
 // @desc    Get all courses
 // @route   GET /api/courses
 // @access  Private
 exports.getCourses = async (req, res) => {
   try {
-    console.log(`GetCourses: Tenant ID = ${req.tenantId}, User ID = ${req.user ? req.user.id : 'Not authenticated'}`);
-    
-    // Make sure we have a tenant connection
-    if (!req.tenantConnection) {
-      console.error(`GetCourses: No tenant connection available for tenant: ${req.tenantId}`);
-      return res.status(503).json({
-        success: false,
-        error: 'Database connection not available. Please try again later.'
+    let query;
+
+    // Copy req.query
+    const reqQuery = { ...req.query };
+
+    // Fields to exclude
+    const removeFields = ['select', 'sort', 'page', 'limit'];
+
+    // Loop over removeFields and delete them from reqQuery
+    removeFields.forEach(param => delete reqQuery[param]);
+
+    // Add tenant filter from middleware
+    reqQuery.tenantId = req.tenantId;
+
+    // Create query string
+    let queryStr = JSON.stringify(reqQuery);
+
+    // Create operators ($gt, $gte, etc)
+    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
+
+    // Finding resource
+    query = Course.find(JSON.parse(queryStr));
+
+    // Select Fields
+    if (req.query.select) {
+      const fields = req.query.select.split(',').join(' ');
+      query = query.select(fields);
+    }
+
+    // Sort
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
+
+    // Pagination
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const total = await Course.countDocuments(JSON.parse(queryStr));
+
+    query = query.skip(startIndex).limit(limit);
+
+    // Populate
+    if (req.query.populate) {
+      const populateFields = req.query.populate.split(',');
+      populateFields.forEach(field => {
+        query = query.populate(field);
       });
     }
 
-    if (req.tenantConnection.readyState !== 1) {
-      console.error(`GetCourses: Connection not ready for tenant: ${req.tenantId}, readyState: ${req.tenantConnection.readyState}`);
-      return res.status(503).json({
-        success: false,
-        error: 'Database connection not ready. Please try again later.'
-      });
-    }
+    // Executing query
+    const courses = await query;
 
-    // Get Course model from tenant connection
-    const CourseModel = req.tenantConnection.model('Course');
-    console.log(`GetCourses: Got Course model for tenant: ${req.tenantId}`);
-
-    // Simple query to get all courses for this tenant
-    try {
-      const courses = await CourseModel.find({ tenantId: req.tenantId })
-        .populate('instructor', 'name email')
-        .sort('-createdAt')
-        .lean();
-      
-      // Get total count of courses
-      const totalRecords = courses.length;
-      
-      console.log(`GetCourses: Found ${totalRecords} courses for tenant: ${req.tenantId}`);
-      
-      // Return courses with totalRecords count
-      return res.status(200).json({
-        totalRecords,
-        courses
-      });
-    } catch (queryErr) {
-      console.error(`GetCourses: Query execution error: ${queryErr.message}`);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to retrieve courses. Please try again later.'
-      });
-    }
+    // Format the response to match what the frontend expects - an array directly
+    res.status(200).json(courses);
   } catch (err) {
     console.error(`Error in getCourses: ${err.message}`);
-    console.error(`Stack: ${err.stack}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -69,51 +78,24 @@ exports.getCourses = async (req, res) => {
 // @access  Private
 exports.getCourse = async (req, res) => {
   try {
-    console.log(`GetCourse: Retrieving course with ID: ${req.params.id} for tenant: ${req.tenantId}`);
-    
-    // Make sure we have a tenant connection
-    if (!req.tenantConnection) {
-      console.error(`GetCourse: No tenant connection available for tenant: ${req.tenantId}`);
-      return res.status(503).json({
-        success: false,
-        error: 'Database connection not available. Please try again later.'
-      });
-    }
-
-    if (req.tenantConnection.readyState !== 1) {
-      console.error(`GetCourse: Connection not ready for tenant: ${req.tenantId}, readyState: ${req.tenantConnection.readyState}`);
-      return res.status(503).json({
-        success: false,
-        error: 'Database connection not ready. Please try again later.'
-      });
-    }
-
-    // Get Course model from tenant connection
-    const CourseModel = req.tenantConnection.model('Course');
-    console.log(`GetCourse: Got Course model for tenant: ${req.tenantId}`);
-    
-    // Find the course
-    const course = await CourseModel.findOne({
+    const course = await Course.findOne({
       _id: req.params.id,
       tenantId: req.tenantId
     }).populate('instructor', 'name email');
 
     if (!course) {
-      console.error(`GetCourse: Course not found with ID: ${req.params.id}`);
       return res.status(404).json({
         success: false,
         error: 'Course not found'
       });
     }
 
-    console.log(`GetCourse: Successfully retrieved course: ${course._id}`);
     res.status(200).json({
       success: true,
       data: course
     });
   } catch (err) {
     console.error(`Error in getCourse: ${err.message}`);
-    console.error(`Stack: ${err.stack}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -124,6 +106,8 @@ exports.getCourse = async (req, res) => {
 // @desc    Create new course
 // @route   POST /api/courses
 // @access  Private/Instructor
+
+
 exports.createCourse = async (req, res) => {
   try {
     console.log('Creating course with data:', JSON.stringify(req.body));
@@ -293,91 +277,28 @@ exports.deleteCourse = async (req, res) => {
 // @access  Private
 exports.getEnrolledCourses = async (req, res) => {
   try {
-    // Make sure we have a tenant connection
-    if (!req.tenantConnection || req.tenantConnection.readyState !== 1) {
-      console.error(`No valid tenant connection available`);
-      return res.status(503).json({
-        success: false,
-        error: 'Database connection not available. Please try again later.'
-      });
-    }
-
-    // Use models from the tenant connection
-    const CourseModel = req.tenantConnection.model('Course');
-    const UserProgressModel = req.tenantConnection.model('UserProgress');
-    
-    // Set up timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Database operation timed out')), 15000);
-    });
-    
-    console.log(`Fetching enrolled courses for user: ${req.user.id} and tenant: ${req.tenantId}`);
+    // Find user progress records for the current user
+    const UserProgress = require('../models/UserProgress');
     
     // Get course IDs from user progress
-    const progressPromise = UserProgressModel.find({
+    const userProgress = await UserProgress.find({
       user: req.user.id,
       tenantId: req.tenantId
-    }).select('course').lean().exec();
-    
-    let userProgress;
-    try {
-      userProgress = await Promise.race([progressPromise, timeoutPromise]);
-      console.log(`Found ${userProgress.length} progress records for user`);
-    } catch (err) {
-      console.error(`Error fetching user progress: ${err.message}`);
-      if (err.message === 'Database operation timed out') {
-        return res.status(504).json({
-          success: false,
-          error: 'Database operation timed out. Please try again later.'
-        });
-      }
-      throw err;
-    }
+    }).select('course');
     
     // Extract course IDs
     const courseIds = userProgress.map(progress => progress.course);
     
-    if (courseIds.length === 0) {
-      console.log(`No enrolled courses found for user: ${req.user.id}`);
-      // Return object with empty courses array and totalRecords: 0
-      return res.status(200).json({
-        courses: [],
-        totalRecords: 0
-      });
-    }
-    
     // Find courses with those IDs
-    const coursesPromise = CourseModel.find({
+    const courses = await Course.find({
       _id: { $in: courseIds },
       tenantId: req.tenantId
-    }).populate('instructor', 'name email').lean().exec();
+    }).populate('instructor', 'name email');
     
-    let courses;
-    try {
-      courses = await Promise.race([coursesPromise, timeoutPromise]);
-      console.log(`Found ${courses.length} enrolled courses`);
-    } catch (err) {
-      console.error(`Error fetching enrolled courses: ${err.message}`);
-      if (err.message === 'Database operation timed out') {
-        return res.status(504).json({
-          success: false,
-          error: 'Database operation timed out. Please try again later.'
-        });
-      }
-      throw err;
-    }
-    
-    // Get total count of enrolled courses
-    const totalRecords = courses.length;
-    
-    // Return courses with totalRecords count
-    res.status(200).json({
-      courses,
-      totalRecords
-    });
+    // Format the response to match what the frontend expects - an array directly
+    res.status(200).json(courses);
   } catch (err) {
     console.error(`Error in getEnrolledCourses: ${err.message}`);
-    console.error(`Stack: ${err.stack}`);
     res.status(500).json({
       success: false,
       error: 'Server Error'
@@ -407,78 +328,6 @@ exports.createCourseSimple = async (req, res) => {
         .replace(/ /g, '-')
         .replace(/[^\w-]+/g, '')
     };
-    
-    // Handle file upload if there is one
-    if (req.files && req.files.thumbnail) {
-      try {
-        const file = req.files.thumbnail;
-        
-        // Create a unique filename
-        const fileName = `${Date.now()}_${file.name}`;
-        const uploadPath = path.join(__dirname, '../../public/uploads/course-thumbnails', fileName);
-        
-        // Make sure the directory exists
-        const uploadDir = path.dirname(uploadPath);
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-          console.log('Created uploads directory:', uploadDir);
-        }
-        
-        // Move the file (synchronously)
-        await new Promise((resolve, reject) => {
-          file.mv(uploadPath, (err) => {
-            if (err) {
-              console.error('File upload error:', err);
-              reject(err);
-            } else {
-              console.log('File uploaded successfully to:', uploadPath);
-              resolve();
-            }
-          });
-        });
-        
-        // Use a path that will be accessible from the frontend via the proxy
-        const thumbnailUrl = `/uploads/course-thumbnails/${fileName}`;
-        
-        // Log the path for debugging
-        console.log('Thumbnail URL set to:', thumbnailUrl);
-        
-        // Set the thumbnail path in the course data
-        courseData.thumbnail = thumbnailUrl;
-      } catch (uploadErr) {
-        console.error('Error during file upload:', uploadErr);
-        return res.status(500).json({
-          success: false,
-          error: 'File upload failed'
-        });
-      }
-    } else if (req.body.thumbnailUrl) {
-      // If no file but URL provided, use that
-      courseData.thumbnail = req.body.thumbnailUrl;
-    }
-    
-    // Parse tags if they come as a JSON string
-    if (typeof req.body.tags === 'string') {
-      try {
-        courseData.tags = JSON.parse(req.body.tags);
-      } catch (e) {
-        console.error('Error parsing tags:', e);
-        courseData.tags = [];
-      }
-    }
-    
-    // Convert string values to appropriate types
-    if (req.body.duration) {
-      courseData.duration = parseInt(req.body.duration, 10);
-    }
-    
-    if (req.body.price) {
-      courseData.price = parseFloat(req.body.price);
-    }
-    
-    if (req.body.isPublic) {
-      courseData.isPublic = req.body.isPublic === 'true';
-    }
     
     // Get the mongoose connection from the request
     const connection = req.tenantConnection;
@@ -510,88 +359,6 @@ exports.createCourseSimple = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server Error: ' + err.message
-    });
-  }
-};
-
-// @desc    Enroll user in a course
-// @route   POST /api/courses/:id/enroll
-// @access  Private
-exports.enrollInCourse = async (req, res) => {
-  try {
-    // Get tenant connection
-    const connection = req.tenantConnection;
-    if (!connection) {
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection not available'
-      });
-    }
-    
-    // Use models from tenant connection
-    const { getModel } = require('../models');
-    const Course = getModel(connection, 'Course');
-    const UserProgress = getModel(connection, 'UserProgress');
-    
-    console.log(`Enrolling user ${req.user.id} in course ${req.params.id}`);
-    
-    // Check if course exists
-    const course = await Course.findOne({
-      _id: req.params.id,
-      tenantId: req.tenantId
-    });
-    
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        error: 'Course not found'
-      });
-    }
-    
-    // Check if already enrolled
-    const existingEnrollment = await UserProgress.findOne({
-      user: req.user.id,
-      course: req.params.id,
-      tenantId: req.tenantId
-    });
-    
-    if (existingEnrollment) {
-      return res.status(400).json({
-        success: false,
-        error: 'Already enrolled in this course'
-      });
-    }
-    
-    // Create enrollment / user progress
-    const userProgress = await UserProgress.create({
-      user: req.user.id,
-      course: req.params.id,
-      tenantId: req.tenantId,
-      enrollmentDate: Date.now(),
-      progress: 0,
-      completed: false,
-      lastActivity: Date.now()
-    });
-    
-    // Increment course enrollment count
-    course.enrollmentCount = (course.enrollmentCount || 0) + 1;
-    await course.save();
-    
-    console.log(`User ${req.user.id} successfully enrolled in course ${req.params.id}`);
-    
-    res.status(201).json({
-      success: true,
-      data: {
-        course: req.params.id,
-        enrollmentDate: userProgress.enrollmentDate
-      }
-    });
-  } catch (err) {
-    console.error(`Error in enrollInCourse: ${err.message}`);
-    console.error(`Stack: ${err.stack}`);
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
     });
   }
 }; 

@@ -12,14 +12,8 @@ import {
   Select,
   MenuItem,
   Alert,
-  CircularProgress,
-  Switch,
-  FormControlLabel,
-  Chip,
-  Stack,
-  Avatar
+  CircularProgress
 } from '@mui/material'
-import { SelectChangeEvent } from '@mui/material/Select'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
 
@@ -32,9 +26,6 @@ interface CourseFormData {
   category: string;
   price: number;
   status: string;
-  isPublic: boolean;
-  thumbnail: string;
-  tags: string[];
 }
 
 const AddCourse = () => {
@@ -43,12 +34,6 @@ const AddCourse = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [tagInput, setTagInput] = useState<string>('');
-  
-  // Add state for thumbnail file
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
-  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<CourseFormData>({
     title: '',
@@ -58,10 +43,7 @@ const AddCourse = () => {
     level: 'beginner',
     category: '',
     price: 0,
-    status: 'draft',
-    isPublic: false,
-    thumbnail: '',
-    tags: []
+    status: 'draft'
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
@@ -71,78 +53,6 @@ const AddCourse = () => {
         ...formData,
         [name]: value
       });
-    }
-  };
-
-  const handleSelectChange = (e: SelectChangeEvent<string>) => {
-    const { name, value } = e.target;
-    if (name) {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
-  };
-
-  const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: checked
-    });
-  };
-
-  const handleAddTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData({
-        ...formData,
-        tags: [...formData.tags, tagInput.trim()]
-      });
-      setTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter(tag => tag !== tagToRemove)
-    });
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      handleAddTag();
-    }
-  };
-
-  // Add handler for thumbnail file selection
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setThumbnailError('Please select an image file');
-        return;
-      }
-      
-      // Validate file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        setThumbnailError('Image size should be less than 2MB');
-        return;
-      }
-      
-      setThumbnailFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setThumbnailPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      
-      // Clear any previous errors
-      setThumbnailError(null);
     }
   };
 
@@ -159,64 +69,26 @@ const AddCourse = () => {
     }
     
     try {
-      // Create FormData for multipart/form-data request (for file upload)
-      const courseFormData = new FormData();
-      
-      // Append all form fields
-      courseFormData.append('title', formData.title);
-      courseFormData.append('description', formData.description);
-      courseFormData.append('shortDescription', formData.shortDescription);
-      courseFormData.append('duration', formData.duration.toString());
-      courseFormData.append('level', formData.level);
-      courseFormData.append('category', formData.category);
-      courseFormData.append('price', formData.price.toString());
-      courseFormData.append('status', formData.status);
-      courseFormData.append('isPublic', formData.isPublic.toString());
-      
-      // Append tags as JSON string
-      courseFormData.append('tags', JSON.stringify(formData.tags));
-      
-      // Append thumbnail file if available
-      if (thumbnailFile) {
-        courseFormData.append('thumbnail', thumbnailFile);
-      } else if (formData.thumbnail) {
-        courseFormData.append('thumbnailUrl', formData.thumbnail);
-      }
-      
-      // Ensure headers are set correctly for multipart/form-data
+      // Ensure headers are set correctly
       const config = {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
           'X-Tenant-ID': tenantId
         }
       };
       
-      console.log('Submitting course data with thumbnail');
+      console.log('Submitting course data:', formData);
+      console.log('Using headers:', config.headers);
       
       // Use the simplified endpoint
-      const response = await axios.post('/api/courses/simple', courseFormData, config);
+      const response = await axios.post('/api/courses/simple', formData, config);
       console.log('Course creation response:', response.data);
       
-      // Set success state
       setSuccess('Course created successfully!');
-      
-      // Wait for the database to process the new course
-      // Then try to verify the course exists before navigating
-      setTimeout(async () => {
-        try {
-          // Verify the course is accessible by trying to fetch it
-          const verifyResponse = await axios.get(`/api/courses/${response.data.data._id}`, config);
-          console.log('Course verification response:', verifyResponse.data);
-          
-          // Course exists and is accessible, navigate to courses with query param
-          navigate('/courses?newCourse=true');
-        } catch (verifyErr) {
-          console.warn('Could not verify course, but will navigate anyway:', verifyErr);
-          // Navigate to courses even if verification fails
-          navigate('/courses?newCourse=true');
-        }
-      }, 3000); // Give more time (3 seconds) for the database to process the new course
+      setTimeout(() => {
+        navigate('/courses');
+      }, 2000);
     } catch (err: any) {
       console.error('Course creation error:', err);
       
@@ -247,23 +119,6 @@ const AddCourse = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Add function to get the full image URL
-  const getFullImageUrl = (imagePath: string | undefined) => {
-    if (!imagePath) return undefined;
-    
-    // If it's already a data URL (from preview), return as is
-    if (imagePath.startsWith('data:')) {
-      return imagePath;
-    }
-    
-    // If it's a relative path, use it as is (the proxy will handle it)
-    if (imagePath.startsWith('/')) {
-      return imagePath;
-    }
-    
-    return imagePath;
   };
 
   return (
@@ -351,7 +206,7 @@ const AddCourse = () => {
                 name="level"
                 value={formData.level}
                 label="Level"
-                onChange={handleSelectChange}
+                onChange={handleChange}
                 disabled={loading}
               >
                 <MenuItem value="beginner">Beginner</MenuItem>
@@ -388,142 +243,22 @@ const AddCourse = () => {
             />
           </Box>
           
-          {/* Replace the thumbnail TextField with file upload */}
-          <Box sx={{ mt: 3, mb: 3, textAlign: 'center' }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Course Thumbnail
-            </Typography>
-            <input
-              accept="image/*"
-              style={{ display: 'none' }}
-              id="thumbnail-upload"
-              type="file"
-              onChange={handleThumbnailChange}
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel id="status-label">Status</InputLabel>
+            <Select
+              labelId="status-label"
+              id="status"
+              name="status"
+              value={formData.status}
+              label="Status"
+              onChange={handleChange}
               disabled={loading}
-            />
-            <label htmlFor="thumbnail-upload">
-              <Box
-                sx={{
-                  width: 200,
-                  height: 120,
-                  mx: 'auto',
-                  mb: 1,
-                  border: '1px dashed grey',
-                  borderRadius: 1,
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundImage: thumbnailPreview ? `url(${thumbnailPreview})` : 'none',
-                  '&:hover': {
-                    opacity: 0.8,
-                  },
-                }}
-              >
-                {!thumbnailPreview && (
-                  <Typography variant="body2" color="text.secondary">
-                    Click to upload thumbnail
-                  </Typography>
-                )}
-              </Box>
-              <Button
-                component="span"
-                variant="outlined"
-                size="small"
-                disabled={loading}
-              >
-                Upload Thumbnail
-              </Button>
-            </label>
-            {thumbnailError && (
-              <Typography color="error" variant="caption" display="block" sx={{ mt: 1 }}>
-                {thumbnailError}
-              </Typography>
-            )}
-            {!thumbnailFile && (
-              <TextField
-                margin="normal"
-                fullWidth
-                id="thumbnail"
-                label="Or enter thumbnail URL"
-                name="thumbnail"
-                value={formData.thumbnail}
-                onChange={handleChange}
-                disabled={loading}
-                size="small"
-              />
-            )}
-          </Box>
-          
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Tags
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-              <TextField
-                fullWidth
-                id="tagInput"
-                label="Add Tag"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={loading}
-                helperText="Press Enter to add a tag"
-              />
-              <Button 
-                variant="contained" 
-                onClick={handleAddTag} 
-                disabled={loading || !tagInput.trim()}
-                sx={{ ml: 1, mt: 1 }}
-              >
-                Add
-              </Button>
-            </Box>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-              {formData.tags.map((tag) => (
-                <Chip 
-                  key={tag}
-                  label={tag}
-                  onDelete={() => handleRemoveTag(tag)}
-                  disabled={loading}
-                />
-              ))}
-            </Stack>
-          </Box>
-          
-          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel id="status-label">Status</InputLabel>
-              <Select
-                labelId="status-label"
-                id="status"
-                name="status"
-                value={formData.status}
-                label="Status"
-                onChange={handleSelectChange}
-                disabled={loading}
-              >
-                <MenuItem value="draft">Draft</MenuItem>
-                <MenuItem value="published">Published</MenuItem>
-                <MenuItem value="archived">Archived</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isPublic}
-                  onChange={handleSwitchChange}
-                  name="isPublic"
-                  disabled={loading}
-                />
-              }
-              label="Make course public"
-              sx={{ ml: 2 }}
-            />
-          </Box>
+            >
+              <MenuItem value="draft">Draft</MenuItem>
+              <MenuItem value="published">Published</MenuItem>
+              <MenuItem value="archived">Archived</MenuItem>
+            </Select>
+          </FormControl>
           
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
             <Button

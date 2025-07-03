@@ -20,21 +20,16 @@ exports.register = async (req, res) => {
       });
     }
 
-    console.log(`Register attempt - Email: ${email}, Tenant: ${tenantId}, Role: ${role || 'student'}`);
-
     // Get tenant connection
     const connection = await getConnectionForTenant(tenantId);
     
     // Get User model for this tenant
     const User = getModel(connection, 'User');
 
-    // Check if user exists - add detailed logging
-    console.log(`Checking if user exists with email: ${email} and tenantId: ${tenantId}`);
+    // Check if user exists
     const userExists = await User.findOne({ email, tenantId });
-    console.log(`User exists check result:`, userExists ? `Found user with ID: ${userExists._id}` : 'No existing user found');
 
     if (userExists) {
-      console.log(`Registration failed - User already exists with email: ${email}`);
       return res.status(400).json({
         success: false,
         error: 'User already exists'
@@ -42,7 +37,6 @@ exports.register = async (req, res) => {
     }
 
     // Create user
-    console.log(`Creating new user with email: ${email}, tenantId: ${tenantId}`);
     const user = await User.create({
       name,
       email,
@@ -50,8 +44,6 @@ exports.register = async (req, res) => {
       role: role || 'student',
       tenantId
     });
-
-    console.log(`User created successfully with ID: ${user._id}`);
 
     // Generate token
     const token = user.getSignedJwtToken();
@@ -69,11 +61,9 @@ exports.register = async (req, res) => {
     });
   } catch (err) {
     console.error(`Error in register: ${err.message}`);
-    console.error(`Full error:`, err);
     
     // Check for duplicate email error
     if (err.code === 11000) {
-      console.error(`Duplicate key error: ${JSON.stringify(err.keyValue)}`);
       return res.status(400).json({
         success: false,
         error: 'Email is already registered. Please use a different email or try logging in.'
@@ -114,26 +104,11 @@ exports.login = async (req, res) => {
 
     console.log(`Attempting login for email: ${email} in tenant: ${tenantId}`);
     
-    // Get tenant connection - ensure we're using the same connection throughout
+    // Get tenant connection
     const connection = await getConnectionForTenant(tenantId);
     
-    // Use the connection's User model if it exists, otherwise get it
-    let User;
-    if (connection.models.User) {
-      User = connection.models.User;
-    } else {
-      try {
-        // Get User model for this tenant using the getModel utility
-        const { getModel } = require('../models');
-        User = getModel(connection, 'User');
-      } catch (modelErr) {
-        console.error(`Error getting User model: ${modelErr.message}`);
-        return res.status(500).json({
-          success: false,
-          error: 'Server Error - User model unavailable'
-        });
-      }
-    }
+    // Get User model for this tenant
+    const User = getModel(connection, 'User');
 
     // Check for user
     const user = await User.findOne({ email, tenantId }).select('+password');
@@ -162,22 +137,16 @@ exports.login = async (req, res) => {
     // Generate token
     const token = user.getSignedJwtToken();
 
-    // Create a user object with all necessary fields including complete profile
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      tenantId: user.tenantId,
-      profile: user.profile || {} // Ensure profile is included even if null
-    };
-
-    console.log('Login successful. User data with profile:', userResponse);
-
     res.status(200).json({
       success: true,
       token,
-      user: userResponse
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId
+      }
     });
   } catch (err) {
     console.error(`Error in login: ${err.message}`);

@@ -21,8 +21,7 @@ import {
   LinearProgress,
   Alert,
   Chip,
-  Avatar,
-  Skeleton
+  Avatar
 } from '@mui/material'
 import {
   Description as ContentIcon,
@@ -32,16 +31,10 @@ import {
   InsertDriveFile as FileIcon,
   Quiz as QuizIcon,
   CheckCircle as CompletedIcon,
-  RadioButtonUnchecked as IncompleteIcon,
-  CheckCircle
+  RadioButtonUnchecked as IncompleteIcon
 } from '@mui/icons-material'
 import axios from 'axios'
 import ModuleManager from './ModuleManager'
-import { 
-  PageLoading, 
-  ContentPlaceholder, 
-  AssignmentListSkeleton 
-} from '../ui/LoadingComponents'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -81,7 +74,6 @@ interface Course {
   }
   category: string
   imageUrl?: string
-  thumbnail?: string
   enrolledCount: number
   isEnrolled: boolean
   progress: number
@@ -215,37 +207,7 @@ const CourseDetails = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <PageLoading />
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={8}>
-                  <ContentPlaceholder lines={1} />
-                  <Box sx={{ my: 2 }}>
-                    <ContentPlaceholder lines={3} />
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <Skeleton variant="rectangular" width={80} height={32} />
-                    <Skeleton variant="rectangular" width={100} height={32} />
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Skeleton variant="rectangular" height={200} width="100%" />
-                </Grid>
-              </Grid>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12}>
-            <Paper sx={{ mb: 3 }}>
-              <Skeleton variant="rectangular" height={48} width="100%" />
-              <Box sx={{ p: 3 }}>
-                <AssignmentListSkeleton count={3} />
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+        <LinearProgress />
       </Container>
     )
   }
@@ -280,7 +242,7 @@ const CourseDetails = () => {
               backgroundSize: 'cover',
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'center',
-              backgroundImage: `url(${course.thumbnail || course.imageUrl || 'https://source.unsplash.com/random?education'})`,
+              backgroundImage: `url(${course.imageUrl || 'https://source.unsplash.com/random?education'})`,
             }}
           >
             <Box
@@ -374,7 +336,7 @@ const CourseDetails = () => {
             <TabPanel value={tabValue} index={0}>
               {/* Show module manager for instructors and admins */}
               {user && (user.role === 'instructor' || user.role === 'admin') && 
-                course.instructor._id === user._id && (
+                course.instructor._id === user.id && (
                 <ModuleManager courseId={course._id} />
               )}
               
@@ -421,7 +383,7 @@ const CourseDetails = () => {
                     No content available for this course yet.
                   </Typography>
                   {user && (user.role === 'instructor' || user.role === 'admin') && 
-                    course.instructor._id === user._id && (
+                    course.instructor._id === user.id && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                       Use the module manager above to add content to your course.
                     </Typography>
@@ -458,7 +420,7 @@ const CourseDetails = () => {
                                 label="Submitted" 
                                 color="success" 
                                 size="small" 
-                                icon={<CompletedIcon />} 
+                                icon={<CheckCircle />} 
                               />
                             ) : (
                               <Button

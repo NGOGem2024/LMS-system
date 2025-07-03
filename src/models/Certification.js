@@ -149,4 +149,4 @@ const IssuedCertification = mongoose.model('IssuedCertification', IssuedCertific
 module.exports = {
   Certification: mongoose.model('Certification', CertificationSchema),
   IssuedCertification
-}; 
+};

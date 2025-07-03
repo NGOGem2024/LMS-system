@@ -1,4 +1,4 @@
-import { useState, useContext, FormEvent, useEffect } from 'react'
+import { useState, useContext, FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Avatar,
@@ -15,12 +15,10 @@ import {
   FormControl,
   InputLabel,
   Select,
-  SelectChangeEvent,
-  CircularProgress
+  SelectChangeEvent
 } from '@mui/material'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import AuthContext from '../../context/AuthContext'
-import axios from 'axios'
 
 const Register = () => {
   const [name, setName] = useState('')
@@ -29,8 +27,6 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [selectedTenant, setSelectedTenant] = useState('default')
   const [role, setRole] = useState('student')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [serverStatus, setServerStatus] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState<{
     name?: string,
     email?: string,
@@ -52,24 +48,6 @@ const Register = () => {
     { value: 'instructor', label: 'Instructor' },
     { value: 'admin', label: 'Admin' }
   ]
-
-  // Check server status when component loads
-  useEffect(() => {
-    const checkServer = async () => {
-      try {
-        await axios.get('/')
-        setServerStatus('Server is online')
-      } catch (err) {
-        if (axios.isAxiosError(err) && !err.response) {
-          setServerStatus('Server is offline. Please make sure the backend server is running.')
-        } else {
-          setServerStatus(null)
-        }
-      }
-    }
-    
-    checkServer()
-  }, [])
 
   const validateForm = () => {
     const errors: {
@@ -118,21 +96,7 @@ const Register = () => {
     clearError()
     
     if (validateForm()) {
-      setIsSubmitting(true)
-      
-      try {
-        console.log(`Registering user with email: ${email}, tenant: ${selectedTenant}, role: ${role}`)
-        
-        // Use the context method to register which will update state properly
-        await register(name, email, password, selectedTenant, role)
-        
-        // If we get here, registration was successful
-        console.log('Registration successful through context')
-      } catch (err) {
-        console.error('Registration error:', err)
-      } finally {
-        setIsSubmitting(false)
-      }
+      await register(name, email, password, selectedTenant, role)
     }
   }
 
@@ -163,12 +127,6 @@ const Register = () => {
         <Typography component="h1" variant="h5">
           Sign up
         </Typography>
-        
-        {serverStatus && (
-          <Alert severity={serverStatus.includes('offline') ? 'error' : 'info'} sx={{ width: '100%', mt: 2 }}>
-            {serverStatus}
-          </Alert>
-        )}
         
         {error && (
           <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
@@ -278,9 +236,8 @@ const Register = () => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
-            disabled={isSubmitting}
           >
-            {isSubmitting ? <CircularProgress size={24} /> : 'Sign Up'}
+            Sign Up
           </Button>
           <Grid container justifyContent="flex-end">
             <Grid item>

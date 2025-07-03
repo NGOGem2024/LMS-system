@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Container,
@@ -16,24 +16,18 @@ import {
   CircularProgress,
   Alert,
   Stack,
-  LinearProgress,
-  Card,
-  CardContent,
-  Skeleton
+  LinearProgress
 } from '@mui/material'
-import {
-  Timer as TimerIcon,
-  CheckCircle as CorrectIcon,
-  Cancel as IncorrectIcon
-} from '@mui/icons-material'
 import axios from 'axios'
-import { useLoading } from '../../context/LoadingContext'
+import AuthContext from '../../context/AuthContext'
 
-interface Question {
+interface QuizQuestion {
   _id: string
-  text: string
-  options: string[]
-  correctAnswer?: number
+  questionText: string
+  questionType: 'multiple-choice' | 'true-false' | 'short-answer' | 'matching' | 'fill-in-blanks'
+  options: { _id: string; text: string }[]
+  points: number
+  difficulty: string
 }
 
 interface Quiz {
@@ -52,7 +46,7 @@ interface Quiz {
   passingScore: number
   totalPoints: number
   shuffleQuestions: boolean
-  questions: Question[]
+  questions: QuizQuestion[]
   attemptLimit: number
   canAttempt: boolean
   attemptsCount: number
@@ -78,7 +72,7 @@ interface Answer {
 const QuizAttempt = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { setPageLoading } = useLoading()
+  const { user } = useContext(AuthContext)
   
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null)
@@ -89,16 +83,14 @@ const QuizAttempt = () => {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [score, setScore] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
   
   // Load quiz and start attempt
   useEffect(() => {
     const fetchQuizAndStartAttempt = async () => {
-      setPageLoading(true)
-      setError(null)
-      
       try {
+        setLoading(true)
+        setError(null)
+        
         // Fetch quiz details
         const quizRes = await axios.get(`/api/quizzes/${id}`)
         setQuiz(quizRes.data.data)
@@ -134,13 +126,11 @@ const QuizAttempt = () => {
         console.error('Error starting quiz attempt:', err)
         setError(err.response?.data?.error || 'Failed to start quiz attempt')
         setLoading(false)
-      } finally {
-        setPageLoading(false)
       }
     }
     
     fetchQuizAndStartAttempt()
-  }, [id, setPageLoading])
+  }, [id])
   
   // Timer countdown
   useEffect(() => {
@@ -287,138 +277,40 @@ const QuizAttempt = () => {
     )
   }
   
-  if (isComplete) {
-    // Show results
-    const isPassed = score >= quiz.passingScore
-    
-    return (
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-        <Paper sx={{ p: 3, textAlign: 'center' }}>
-          <Typography variant="h4" gutterBottom>
-            Quiz Results
-          </Typography>
-          
-          <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Typography variant="h2" color={isPassed ? 'success.main' : 'error.main'}>
-              {score}%
-            </Typography>
-            <Typography variant="h6" color="text.secondary" sx={{ mt: 1 }}>
-              {isPassed ? 
-                'Congratulations! You passed the quiz.' : 
-                `Sorry, you didn't pass. Required: ${quiz.passingScore}%`}
-            </Typography>
-          </Box>
-          
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="body1" gutterBottom>
-              Correct answers: {Math.round((score / 100) * quiz.questions.length)} 
-              out of {quiz.questions.length}
-            </Typography>
-            <LinearProgress 
-              variant="determinate" 
-              value={score} 
-              color={isPassed ? 'success' : 'error'} 
-              sx={{ height: 10, borderRadius: 5, my: 2 }}
-            />
-          </Box>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-            <Button 
-              variant="outlined" 
-              onClick={() => navigate(`/courses/${quiz.course._id}`)}
-            >
-              Return to Course
-            </Button>
-            <Button 
-              variant="contained" 
-              onClick={() => navigate('/quizzes')}
-            >
-              All Quizzes
-            </Button>
-          </Box>
-        </Paper>
-        
-        {/* Detailed review - optional */}
-        <Paper sx={{ p: 3, mt: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            Review Questions
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
-          
-          {quiz.questions.map((question, index) => (
-            <Card key={index} sx={{ mb: 2, border: '1px solid', borderColor: answers[index] === question.correctAnswer ? 'success.light' : 'error.light' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {answers[index] === question.correctAnswer ? 
-                    <CorrectIcon color="success" sx={{ mr: 1 }} /> : 
-                    <IncorrectIcon color="error" sx={{ mr: 1 }} />}
-                  <Typography variant="h6">
-                    Question {index + 1}
-                  </Typography>
-                </Box>
-                <Typography variant="body1" sx={{ mt: 1, mb: 2 }}>
-                  {question.text}
-                </Typography>
-                
-                <FormControl component="fieldset">
-                  <RadioGroup value={answers[index]}>
-                    {question.options.map((option, optIndex) => (
-                      <FormControlLabel 
-                        key={optIndex}
-                        value={optIndex}
-                        control={<Radio />}
-                        label={option}
-                        disabled
-                        sx={{ 
-                          ...(optIndex === question.correctAnswer && {
-                            color: 'success.main',
-                            fontWeight: 'bold'
-                          })
-                        }}
-                      />
-                    ))}
-                  </RadioGroup>
-                </FormControl>
-              </CardContent>
-            </Card>
-          ))}
-        </Paper>
-      </Container>
-    )
-  }
-  
   const currentQuestion = quiz.questions[currentQuestionIndex]
   
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5">
-            {quiz.title}
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <TimerIcon sx={{ mr: 1, color: timeRemaining < 60000 ? 'error.main' : 'inherit' }} />
-            <Typography 
-              variant="h6" 
-              color={timeRemaining < 60000 ? 'error.main' : 'inherit'}
-              sx={{ fontFamily: 'monospace' }}
-            >
-              {formatTimeRemaining()}
-            </Typography>
-          </Box>
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4">{quiz.title}</Typography>
+          
+          {timeRemaining !== null && (
+            <Box sx={{ 
+              p: 1, 
+              border: '1px solid', 
+              borderColor: timeRemaining < 60000 ? 'error.main' : 'primary.main',
+              borderRadius: 1,
+              color: timeRemaining < 60000 ? 'error.main' : 'primary.main',
+              fontWeight: 'bold'
+            }}>
+              Time: {formatTimeRemaining()}
+            </Box>
+          )}
         </Box>
         
-        <LinearProgress 
-          variant="determinate" 
-          value={(currentQuestionIndex + 1) / quiz.questions.length * 100} 
-          sx={{ height: 8, borderRadius: 4, mb: 3 }}
-        />
+        <Divider sx={{ mb: 2 }} />
         
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Question {currentQuestionIndex + 1} of {quiz.questions.length}
-        </Typography>
-        
-        <Divider sx={{ my: 3 }} />
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            Question {currentQuestionIndex + 1} of {quiz.questions.length}
+          </Typography>
+          <LinearProgress 
+            variant="determinate" 
+            value={(currentQuestionIndex + 1) / quiz.questions.length * 100} 
+            sx={{ mt: 1 }}
+          />
+        </Box>
         
         {success ? (
           <Alert severity="success" sx={{ mb: 2 }}>
@@ -428,36 +320,66 @@ const QuizAttempt = () => {
           <>
             <Box sx={{ mb: 4 }}>
               <Typography variant="h6" gutterBottom>
-                {currentQuestion.text}
+                {currentQuestion.questionText}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                ({currentQuestion.points} points) • {currentQuestion.difficulty}
               </Typography>
               
-              <FormControl component="fieldset" sx={{ width: '100%', mt: 2 }}>
-                <RadioGroup 
-                  value={answers[currentQuestionIndex]?.selectedOptions?.[0] || ''}
+              {currentQuestion.questionType === 'multiple-choice' && (
+                <FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
+                  <RadioGroup
+                    value={answers[currentQuestionIndex]?.selectedOptions?.[0] || ''}
+                    onChange={(e) => handleAnswerChange(
+                      currentQuestion._id, 
+                      e.target.value, 
+                      'multiple-choice'
+                    )}
+                  >
+                    {currentQuestion.options.map(option => (
+                      <FormControlLabel
+                        key={option._id}
+                        value={option._id}
+                        control={<Radio />}
+                        label={option.text}
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+              )}
+              
+              {currentQuestion.questionType === 'true-false' && (
+                <FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
+                  <RadioGroup
+                    value={answers[currentQuestionIndex]?.selectedOptions?.[0] || ''}
+                    onChange={(e) => handleAnswerChange(
+                      currentQuestion._id, 
+                      e.target.value, 
+                      'multiple-choice'
+                    )}
+                  >
+                    <FormControlLabel value="true" control={<Radio />} label="True" />
+                    <FormControlLabel value="false" control={<Radio />} label="False" />
+                  </RadioGroup>
+                </FormControl>
+              )}
+              
+              {currentQuestion.questionType === 'short-answer' && (
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  placeholder="Type your answer here..."
+                  value={answers[currentQuestionIndex]?.textAnswer || ''}
                   onChange={(e) => handleAnswerChange(
                     currentQuestion._id, 
                     e.target.value, 
-                    'multiple-choice'
+                    'text'
                   )}
-                >
-                  {currentQuestion.options.map((option, index) => (
-                    <FormControlLabel 
-                      key={index}
-                      value={option}
-                      control={<Radio />}
-                      label={option}
-                      sx={{ 
-                        mb: 1, 
-                        p: 1, 
-                        borderRadius: 1,
-                        '&:hover': {
-                          bgcolor: 'action.hover'
-                        }
-                      }}
-                    />
-                  ))}
-                </RadioGroup>
-              </FormControl>
+                  sx={{ mt: 2 }}
+                />
+              )}
             </Box>
             
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>

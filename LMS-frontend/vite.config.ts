@@ -9,14 +9,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:2000',
         changeOrigin: true,
-      },
-      '/uploads': {
-        target: 'http://localhost:2000',
-        changeOrigin: true,
       }
-    },
-    allowedHosts: ['4f6f-152-59-7-120.ngrok-free.app'],
-  },
-  
-  
+    }
+  }
 }) 

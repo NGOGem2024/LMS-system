@@ -6,8 +6,7 @@ const {
   updateCourse,
   deleteCourse,
   getEnrolledCourses,
-  createCourseSimple,
-  enrollInCourse
+  createCourseSimple
 } = require('../controllers/courseController');
 
 const router = express.Router();
@@ -25,6 +24,7 @@ router.use(tenantMiddleware);
 // Re-route into other resource routers
 router.use('/:courseId/modules', moduleRouter);
 
+
 router.route('/')
   .get(protect, getCourses)
   .post(protect, authorize('instructor', 'admin'), createCourse);
@@ -40,10 +40,6 @@ router.route('/admin')
 // Simplified course creation route
 router.route('/simple')
   .post(protect, authorize('instructor', 'admin'), createCourseSimple);
-
-// Course enrollment route
-router.route('/:id/enroll')
-  .post(protect, enrollInCourse);
 
 router.route('/:id')
   .get(protect, getCourse)
