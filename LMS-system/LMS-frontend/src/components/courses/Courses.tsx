@@ -84,7 +84,7 @@ const Courses = () => {
   const [totalRecords, setTotalRecords] = useState(0)
   const [sortByLevel, setSortByLevel] = useState(false)
   
-  const coursesPerPage = 8
+  const coursesPerPage = 9
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -221,7 +221,7 @@ const Courses = () => {
             Courses
           </Typography>
         </Box>
-        <CourseGridSkeleton count={8} />
+        <CourseGridSkeleton count={9} />
       </Container>
     )
   }
@@ -464,24 +464,21 @@ const Courses = () => {
               </Button>
             )}
           </Paper>
-        ) : (
+         ) : (
           <>
             <Grid container spacing={3}>
               {paginatedCourses.map((course) => (
-                <Grid item key={course._id} xs={12} sm={6} md={4} lg={3}>
+                <Grid item key={course._id} xs={12} sm={6} md={4}>
                   <Card 
                     sx={{ 
                       height: '100%',
                       display: 'flex',
                       flexDirection: 'column',
-                      borderRadius: 2,
-                      transition: 'all 0.2s ease',
-                      border: '1px solid',
-                      borderColor: 'divider',
+                      borderRadius: 1,
+                      transition: 'all 0.2s ease-in-out',
                       '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 8px 16px rgba(0,0,0,0.08)',
-                        borderColor: 'primary.main'
+                        transform: 'translateY(-2px)',
+                        boxShadow: 2
                       },
                     }}
                   >
@@ -492,41 +489,31 @@ const Courses = () => {
                         image={course.thumbnail || course.imageUrl || `https://source.unsplash.com/400x200?education,${course._id}`}
                         alt={course.title}
                         sx={{ 
-                          borderRadius: '8px 8px 0 0',
-                          objectFit: 'cover'
+                          objectFit: 'cover',
+                          borderTopLeftRadius: 8,
+                          borderTopRightRadius: 8
                         }}
                       />
-                      <Box sx={{ position: 'absolute', top: 12, left: 12 }}>
-                        <Chip 
-                          label={course.category} 
-                          size="small" 
-                          sx={{ 
-                            bgcolor: 'background.paper',
-                            fontWeight: 600,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                          }}
-                        />
-                      </Box>
-                      <Box sx={{ position: 'absolute', top: 12, right: 12 }}>
-                        <Tooltip title="Save for later">
-                          <IconButton 
-                            size="small" 
-                            sx={{ 
-                              bgcolor: 'background.paper',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                              '&:hover': { bgcolor: 'background.default' }
-                            }}
-                          >
-                            <BookmarkIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                      {/* Category Badge */}
+                      <Chip
+                        label={course.category}
+                        size="small"
+                        color="primary"
+                        sx={{
+                          position: 'absolute',
+                          top: 12,
+                          left: 12,
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          textTransform: 'uppercase'
+                        }}
+                      />
                     </Box>
 
-                    <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                    <CardContent sx={{ flexGrow: 1, p: 2 }}>
                       <Box sx={{ mb: 2 }}>
                         <Typography 
-                          variant="subtitle1" 
+                          variant="h6" 
                           component="h3" 
                           fontWeight="bold" 
                           sx={{ 
@@ -552,57 +539,40 @@ const Courses = () => {
                             minHeight: '4.5em'
                           }}
                         >
-                          {course.shortDescription || course.description}
+                          {course.description}
                         </Typography>
                       </Box>
 
-                      <Divider sx={{ my: 2 }} />
-
-                      {/* Course Meta Information */}
-                      <Stack spacing={1.5}>
-                        {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <PersonIcon fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary">
-                            {course.instructor.name}
-                          </Typography>
-                        </Box> */}
-
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <TimeIcon fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary">
-                            {formatDuration(course.duration)}
-                          </Typography>
-                        </Box>
-
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <GroupsIcon fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary">
-                            {course.enrolledCount} Ngos
-                          </Typography>
-                        </Box>
-                      </Stack>
-
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        mt: 2,
-                        gap: 1
-                      }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center',justifyContent:'center', gap: 2, mb: 2 }}>
+                        
                         <Chip 
                           label={course.level.charAt(0).toUpperCase() + course.level.slice(1)} 
                           size="small" 
                           color={getLevelColor(course.level)}
                           variant="outlined"
-                          sx={{ fontWeight: 500 }}
                         />
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <TimeIcon fontSize="small" color="action" />
+                        <Typography variant="body2" color="text.secondary">
+                          {formatDuration(course.duration)}
+                        </Typography>
                         
+                      </Box>
+
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        mb: 2
+                      }}>
                         {course.price !== undefined ? (
-                          <Typography variant="subtitle1" color="primary.main" fontWeight="bold">
+                          <Typography variant="h6" color="primary.main" fontWeight="bold">
                             ${course.price.toFixed(2)}
                           </Typography>
                         ) : (
-                          <Typography variant="subtitle1" color="success.main" fontWeight="bold">
+                          <Typography variant="h6" color="success.main" fontWeight="bold">
                             Free
                           </Typography>
                         )}
@@ -610,9 +580,9 @@ const Courses = () => {
 
                       {/* Tags */}
                       {course.tags && course.tags.length > 0 && (
-                        <Box sx={{ mt: 2 }}>
+                        <Box sx={{ mb: 2 }}>
                           <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                            {course.tags.slice(0, 3).map((tag) => (
+                            {course.tags.slice(0, 2).map((tag) => (
                               <Chip 
                                 key={tag} 
                                 label={tag} 
@@ -621,9 +591,9 @@ const Courses = () => {
                                 sx={{ fontSize: '0.7rem' }}
                               />
                             ))}
-                            {course.tags.length > 3 && (
+                            {course.tags.length > 2 && (
                               <Chip 
-                                label={`+${course.tags.length - 3}`} 
+                                label={`+${course.tags.length - 2}`} 
                                 size="small" 
                                 variant="outlined"
                                 sx={{ fontSize: '0.7rem' }}
@@ -635,7 +605,7 @@ const Courses = () => {
 
                       {/* Progress Bar for Enrolled Courses */}
                       {course.isEnrolled && course.progress !== undefined && (
-                        <Box sx={{ mt: 2 }}>
+                        <Box sx={{ mb: 2 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                             <Typography variant="body2" color="text.secondary">
                               Progress
@@ -657,7 +627,7 @@ const Courses = () => {
                       )}
                     </CardContent>
 
-                    <CardActions sx={{ p: 3, pt: 0 }}>
+                    <CardActions sx={{ p: 2, pt: 0 }}>
                       <Button 
                         fullWidth
                         variant={course.isEnrolled ? "outlined" : "contained"}
@@ -668,13 +638,11 @@ const Courses = () => {
                           () => handleEnroll(course._id)
                         }
                         sx={{ 
-                          borderRadius: 1,
                           py: 1,
                           fontWeight: 600
                         }}
                       >
-                        {course.isEnrolled ? 'Continue' : 'Enroll Now'}
-                        {/* Start Course */}
+                        {course.isEnrolled ? 'Continue' : 'Start Course'}
                       </Button>
                     </CardActions>
                   </Card>
@@ -683,7 +651,7 @@ const Courses = () => {
             </Grid>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalPages >= 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
                 <Pagination 
                   count={totalPages} 
