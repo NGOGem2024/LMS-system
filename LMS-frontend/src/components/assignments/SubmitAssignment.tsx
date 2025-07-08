@@ -1,5 +1,6 @@
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, FormEvent, useContext } from 'react'
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom'
+import AuthContext from '../../context/AuthContext'
 import {
   Container,
   Typography,
@@ -40,12 +41,22 @@ interface Assignment {
 const SubmitAssignment = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useContext(AuthContext)
   
   const [assignment, setAssignment] = useState<Assignment | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  
+  // Redirect if user is instructor or admin
+  useEffect(() => {
+    if (user && (user.role === 'instructor' || user.role === 'admin') && id) {
+      navigate(`/assignments/${id}`, { 
+        state: { message: 'Instructors and admins cannot submit assignments' } 
+      });
+    }
+  }, [user, id, navigate]);
   
   // Form state
   const [submissionType, setSubmissionType] = useState<'text' | 'file'>('text')

@@ -49,7 +49,7 @@ axios.interceptors.response.use(
     console.log('Response data:', response.data);
     return response;
   },
-  (error) => {
+  async (error) => {
     console.error('API Error:', error);
     console.error('Status:', error.response?.status);
     console.error('Data:', error.response?.data);
@@ -72,6 +72,18 @@ axios.interceptors.response.use(
     // Handle service unavailable
     if (error.response && error.response.status === 503) {
       console.error('Service unavailable:', error.response.data);
+    }
+    
+    // Handle 500 internal server errors - retry for progress/stats endpoint once
+    if (
+      error.response && 
+      error.response.status === 500 && 
+      error.config.url === '/api/progress/stats' && 
+      !error.config.__isRetryRequest
+    ) {
+      console.log('500 error on progress/stats - retrying once');
+      const newConfig = { ...error.config, __isRetryRequest: true };
+      return axios(newConfig);
     }
     
     return Promise.reject(error);

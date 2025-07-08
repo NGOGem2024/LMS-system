@@ -72,6 +72,9 @@ const AssignmentSubmissionSchema = new mongoose.Schema({
 // Create compound index for student and assignment
 AssignmentSubmissionSchema.index({ student: 1, assignment: 1 }, { unique: true });
 
+// Create index for student and tenantId for faster stats queries
+AssignmentSubmissionSchema.index({ student: 1, tenantId: 1 });
+
 // Check if submission is late
 AssignmentSubmissionSchema.pre('save', async function(next) {
   if (!this.isNew) {

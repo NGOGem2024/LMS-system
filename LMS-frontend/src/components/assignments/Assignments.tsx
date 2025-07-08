@@ -471,7 +471,7 @@ const Assignments = () => {
                   >
                     View Details
                   </Button>
-                  {assignment.submissionStatus === 'pending' && (
+                  {assignment.submissionStatus === 'pending' && user?.role === 'student' && (
                     <Button 
                       size="small" 
                       component={RouterLink} 
@@ -479,7 +479,7 @@ const Assignments = () => {
                       variant="contained"
                       fullWidth
                     >
-                      Submit
+                      Submit 
                     </Button>
                   )}
                 </CardActions>

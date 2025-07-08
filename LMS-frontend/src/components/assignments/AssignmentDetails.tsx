@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useParams, Link as RouterLink } from 'react-router-dom'
+import AuthContext from '../../context/AuthContext'
 import {
   Container,
   Typography,
@@ -43,6 +44,14 @@ interface Assignment {
   submissionStatus?: 'pending' | 'overdue' | 'submitted' | 'late' | 'graded' | 'passed' | 'failed' | 'resubmit' | 'missed'
   allowLateSubmissions: boolean
   latePenalty: number 
+  submissionType: 'text' | 'file' | 'link' | 'multiple'
+  maxFileSize?: number
+  createdAt: string
+  attachments?: {
+    name: string
+    fileUrl: string
+    fileType: string
+  }[]
   course: {
     _id: string
     title: string
@@ -61,6 +70,7 @@ const AssignmentDetails = () => {
   const [assignment, setAssignment] = useState<Assignment | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { user } = useContext(AuthContext)
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -247,7 +257,7 @@ const AssignmentDetails = () => {
                     </ListItemIcon>
                     <ListItemText 
                       primary="Points" 
-                      secondary={assignment.totalPoints} 
+                      secondary={`${assignment.totalPoints} (Passing: ${assignment.passingPoints || Math.round(assignment.totalPoints * 0.6)})`} 
                     />
                   </ListItem>
                   {assignment.submission && assignment.submission.submittedAt && (
@@ -264,6 +274,26 @@ const AssignmentDetails = () => {
                 </List>
               </Grid>
             </Grid>
+            
+            {/* Display assignment status badge */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+              {assignment.status && (
+                // Only show status badge if user is instructor/admin OR status is not 'draft'
+                (user?.role === 'instructor' || user?.role === 'admin' || assignment.status !== 'draft') && (
+                  <Chip 
+                    label={`Status: ${assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}`}
+                    color={assignment.status === 'published' ? 'success' : assignment.status === 'draft' ? 'default' : 'warning'}
+                    variant="outlined"
+                    size="small"
+                  />
+                )
+              )}
+              {assignment.createdAt && (
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+                  Created: {new Date(assignment.createdAt).toLocaleDateString()}
+                </Typography>
+              )}
+            </Box>
           </Paper>
         </Grid>
         
@@ -286,9 +316,76 @@ const AssignmentDetails = () => {
               {assignment.instructions}
             </Typography>
             
+            {/* Submission Information */}
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Submission Information
+              </Typography>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                {assignment.submissionType ? (
+                  <>
+                    <Typography variant="body2">
+                      <strong>Submission Type:</strong> {assignment.submissionType.charAt(0).toUpperCase() + assignment.submissionType.slice(1)}
+                    </Typography>
+                    
+                    {assignment.submissionType === 'file' && assignment.maxFileSize && (
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        <strong>Max File Size:</strong> {assignment.maxFileSize} MB
+                      </Typography>
+                    )}
+                  </>
+                ) : (
+                  <Typography variant="body2">
+                    <strong>Submission Type:</strong> Text
+                  </Typography>
+                )}
+                
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  <strong>Late Submissions:</strong> {assignment.allowLateSubmissions ? 
+                    `Allowed${assignment.latePenalty > 0 ? ` (${assignment.latePenalty}% penalty)` : ''}` : 
+                    'Not allowed'}
+                </Typography>
+              </Paper>
+            </Box>
+            
+            {/* Attachments Section */}
+            {assignment.attachments && assignment.attachments.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Attachments
+                </Typography>
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <List dense>
+                    {assignment.attachments.map((attachment, index) => (
+                      <ListItem key={index}>
+                        <ListItemIcon>
+                          <AssignmentIcon />
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={attachment.name}
+                          secondary={attachment.fileType} 
+                        />
+                        <Button 
+                          variant="outlined" 
+                          size="small"
+                          component="a"
+                          href={attachment.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Download
+                        </Button>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              </Box>
+            )}
+            
             {!assignment.submission && 
              !['submitted', 'late', 'graded', 'passed', 'failed', 'resubmit'].includes(assignment.submissionStatus || '') && 
-             assignment.submissionStatus !== 'missed' && (
+             assignment.submissionStatus !== 'missed' && 
+             user?.role === 'student' && (
               <Box sx={{ mt: 4 }}>
                 <Button
                   variant="contained"
@@ -390,12 +487,21 @@ const AssignmentDetails = () => {
                       {assignment.latePenalty > 0 && ` Note that a ${assignment.latePenalty}% penalty will apply.`}
                     </Alert>
                   ) : (
-                    <Alert severity="warning">
-                      You haven't submitted this assignment yet. The due date is {new Date(assignment.dueDate).toLocaleDateString()}.
-                    </Alert>
+                    <>
+                      {/* Only show this message to students */}
+                      {user?.role === 'student' ? (
+                        <Alert severity="warning">
+                          You haven't submitted this assignment yet. The due date is {new Date(assignment.dueDate).toLocaleDateString()}.
+                        </Alert>
+                      ) : (user?.role === 'instructor' || user?.role === 'admin') && (
+                        <Alert severity="warning">
+                          Instructors and admins cannot submit assignments.
+                        </Alert>
+                      )}
+                    </>
                   )}
                   
-                  {assignment.submissionStatus !== 'missed' && (
+                  {assignment.submissionStatus !== 'missed' && user?.role === 'student' && (
                     <Box sx={{ mt: 3 }}>
                       <Button
                         variant="contained"

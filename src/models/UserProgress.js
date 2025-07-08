@@ -94,6 +94,9 @@ const UserProgressSchema = new mongoose.Schema({
 // Create compound index for user and course
 UserProgressSchema.index({ user: 1, course: 1 }, { unique: true });
 
+// Create index for user and tenantId for faster stats queries
+UserProgressSchema.index({ user: 1, tenantId: 1 });
+
 // Calculate overall progress before saving
 UserProgressSchema.pre('save', function(next) {
   if (this.moduleProgress && this.moduleProgress.length > 0) {

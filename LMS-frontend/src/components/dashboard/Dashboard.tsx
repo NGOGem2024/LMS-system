@@ -104,12 +104,21 @@ const Dashboard = () => {
         const assignmentsRes = await axios.get<AssignmentsResponse>('/api/assignments/upcoming')
         setAssignments(assignmentsRes.data.assignments ? assignmentsRes.data.assignments.slice(0, 5) : []) // Show only 5 upcoming assignments
         
-        // Fetch progress statistics
-        const statsRes = await axios.get('/api/progress/stats')
-        setProgressStats(statsRes.data)
+        let statsData = null
         
-        // If API is not ready, calculate some stats from the courses and assignments
-        if (!statsRes.data || !statsRes.data.totalCourses) {
+        try {
+          // Fetch progress statistics - handle in a separate try/catch
+          const statsRes = await axios.get('/api/progress/stats')
+          statsData = statsRes.data
+          setProgressStats(statsData)
+        } catch (statsErr) {
+          console.error('Failed to fetch progress stats:', statsErr)
+          // statsData will remain null and we'll use the fallback below
+        }
+        
+        // If API failed or returned no data, calculate stats from the courses and assignments
+        if (!statsData || !statsData.totalCourses) {
+          console.log('Using fallback stats calculation')
           const allCourses = coursesRes.data.courses as Course[]
           const upcomingAssignments = assignmentsRes.data.assignments || []
           const completedCourses = allCourses.filter((c: Course) => c.progress === 100).length
@@ -125,13 +134,13 @@ const Dashboard = () => {
             completedAssignments,
             pendingAssignments: totalAssignments - completedAssignments,
             overallProgress: allCourses.length > 0 
-              ? allCourses.reduce((sum: number, course: Course) => sum + course.progress, 0) / allCourses.length
+              ? allCourses.reduce((sum: number, course: Course) => sum + (course.progress || 0), 0) / allCourses.length
               : 0
           })
         }
       } catch (err: any) {
         setError('Failed to load dashboard data. Please try again later.')
-        console.error(err)
+        console.error('Dashboard data fetch error:', err)
       } finally {
         setLoading(false)
       }
