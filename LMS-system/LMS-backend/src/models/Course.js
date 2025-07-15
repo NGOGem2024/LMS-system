@@ -33,6 +33,7 @@ const CourseSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a category']
   },
+
   tags: [String],
   thumbnail: {
     type: String,

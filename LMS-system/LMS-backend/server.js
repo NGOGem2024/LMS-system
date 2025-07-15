@@ -56,6 +56,7 @@ const errorHandler = require('./src/middleware/errorMiddleware');
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/tenants', require('./src/routes/tenants'));
 app.use('/api/courses', require('./src/routes/courses'));
+app.use('/api/public', require('./src/routes/courses'));
 app.use('/api/assignments', require('./src/routes/assignments'));
 app.use('/api/certifications', require('./src/routes/certifications'));
 app.use('/api/quizzes', require('./src/routes/quizzes'));
@@ -64,11 +65,14 @@ app.use('/api/institutions', require('./src/routes/institutions'));
 app.use('/api/progress', require('./src/routes/userProgress'));
 app.use('/api/modules', require('./src/routes/modules'));
 app.use('/api/content', require('./src/routes/content'));
-
+// NGO LMS specific routes
+app.use('/api/ngo-lms', require('./src/routes/NgoLms/courses'));
+app.use('/api/ngo-lms', require('./src/routes/NgoLms/module'));
 // Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to LMS API with Multi-tenant support' });
 });
+
 
 // Diagnostic route to check connection status
 app.get('/api/status/connections', (req, res) => {

@@ -1,11 +1,12 @@
-const Course = require('../models/Course');
+const Course = require('../../models/NgoLms/NgoCourse');
+const Module = require('../../models/NgoLms/NgoModule');
 const path = require('path');
 const fs = require('fs');
-
 
 // @desc    Get all courses
 // @route   GET /api/courses
 // @access  Private
+
 exports.getCourses = async (req, res) => {
   try {
     console.log(`GetCourses: Tenant ID = ${req.tenantId}, User ID = ${req.user ? req.user.id : 'Not authenticated'}`);
@@ -31,10 +32,11 @@ exports.getCourses = async (req, res) => {
     const CourseModel = req.tenantConnection.model('Course');
     console.log(`GetCourses: Got Course model for tenant: ${req.tenantId}`);
 
-    // Simple query to get all courses for this tenant
+    // Query to get all courses for this tenant with populated modules
     try {
       const courses = await CourseModel.find({ tenantId: req.tenantId })
         .populate('instructor', 'name email')
+        .populate('institution', 'name')
         .sort('-createdAt')
         .lean();
       
@@ -93,11 +95,13 @@ exports.getCourse = async (req, res) => {
     const CourseModel = req.tenantConnection.model('Course');
     console.log(`GetCourse: Got Course model for tenant: ${req.tenantId}`);
     
-    // Find the course
+    // Find the course with populated modules
     const course = await CourseModel.findOne({
       _id: req.params.id,
       tenantId: req.tenantId
-    }).populate('instructor', 'name email');
+    })
+    .populate('instructor', 'name email')
+    .populate('institution', 'name');
 
     if (!course) {
       console.error(`GetCourse: Course not found with ID: ${req.params.id}`);
@@ -136,6 +140,11 @@ exports.createCourse = async (req, res) => {
     
     // Add tenant to req.body
     req.body.tenantId = req.tenantId;
+
+    // Set default values for new schema fields
+    req.body.status = req.body.status || 'draft';
+    req.body.isFeatured = req.body.isFeatured || false;
+    req.body.enrolledUsers = 0;
 
     // Set a timeout for the operation
     const timeoutPromise = new Promise((_, reject) => {
@@ -223,6 +232,7 @@ exports.updateCourse = async (req, res) => {
     delete updateData.instructor;
     delete updateData.tenantId;
     delete updateData.slug;
+    delete updateData.enrolledUsers; // This should be managed separately
 
     course = await Course.findByIdAndUpdate(
       req.params.id,
@@ -273,6 +283,9 @@ exports.deleteCourse = async (req, res) => {
         error: 'Not authorized to delete this course'
       });
     }
+
+    // Delete associated modules first
+    await Module.deleteMany({ course: course._id });
 
     await course.remove();
 
@@ -340,7 +353,6 @@ exports.getEnrolledCourses = async (req, res) => {
     
     if (courseIds.length === 0) {
       console.log(`No enrolled courses found for user: ${req.user.id}`);
-      // Return object with empty courses array and totalRecords: 0
       return res.status(200).json({
         courses: [],
         totalRecords: 0
@@ -351,7 +363,10 @@ exports.getEnrolledCourses = async (req, res) => {
     const coursesPromise = CourseModel.find({
       _id: { $in: courseIds },
       tenantId: req.tenantId
-    }).populate('instructor', 'name email').lean().exec();
+    })
+    .populate('instructor', 'name email')
+    .populate('institution', 'name')
+    .lean().exec();
     
     let courses;
     try {
@@ -403,6 +418,9 @@ exports.createCourseSimple = async (req, res) => {
       tenantId: req.tenantId,
       createdAt: new Date(),
       updatedAt: new Date(),
+      status: req.body.status || 'draft',
+      isFeatured: req.body.isFeatured || false,
+      enrolledUsers: 0,
       slug: req.body.title
         .toLowerCase()
         .replace(/ /g, '-')
@@ -458,27 +476,27 @@ exports.createCourseSimple = async (req, res) => {
       courseData.thumbnail = req.body.thumbnailUrl;
     }
     
-    // Parse tags if they come as a JSON string
-    if (typeof req.body.tags === 'string') {
+    // Handle modules if provided
+    if (req.body.modules) {
       try {
-        courseData.tags = JSON.parse(req.body.tags);
+        if (typeof req.body.modules === 'string') {
+          courseData.modules = JSON.parse(req.body.modules);
+        } else {
+          courseData.modules = req.body.modules;
+        }
       } catch (e) {
-        console.error('Error parsing tags:', e);
-        courseData.tags = [];
+        console.error('Error parsing modules:', e);
+        courseData.modules = [];
       }
     }
     
     // Convert string values to appropriate types
-    if (req.body.duration) {
-      courseData.duration = parseInt(req.body.duration, 10);
+    if (req.body.rating) {
+      courseData.rating = parseFloat(req.body.rating);
     }
     
-    if (req.body.price) {
-      courseData.price = parseFloat(req.body.price);
-    }
-    
-    if (req.body.isPublic) {
-      courseData.isPublic = req.body.isPublic === 'true';
+    if (req.body.isFeatured) {
+      courseData.isFeatured = req.body.isFeatured === 'true';
     }
     
     // Get the mongoose connection from the request
@@ -491,8 +509,8 @@ exports.createCourseSimple = async (req, res) => {
     }
     
     // Use the Mongoose model instead of native MongoDB driver
-    const { getModel } = require('../models');
-    const Course = getModel(connection, 'Course');
+    const { getModel } = require('../../models/NgoLms');
+    const Course = getModel(connection, 'NgoCourse');
     
     // Create the course using Mongoose
     const course = await Course.create(courseData);
@@ -530,8 +548,8 @@ exports.enrollInCourse = async (req, res) => {
     }
     
     // Use models from tenant connection
-    const { getModel } = require('../models');
-    const Course = getModel(connection, 'Course');
+    const { getModel } = require('../../models/NgoLms');
+    const Course = getModel(connection, 'NgoCourse');
     const UserProgress = getModel(connection, 'UserProgress');
     
     console.log(`Enrolling user ${req.user.id} in course ${req.params.id}`);
@@ -575,7 +593,7 @@ exports.enrollInCourse = async (req, res) => {
     });
     
     // Increment course enrollment count
-    course.enrollmentCount = (course.enrollmentCount || 0) + 1;
+    course.enrolledUsers = (course.enrolledUsers || 0) + 1;
     await course.save();
     
     console.log(`User ${req.user.id} successfully enrolled in course ${req.params.id}`);
@@ -595,16 +613,16 @@ exports.enrollInCourse = async (req, res) => {
       error: 'Server Error'
     });
   }
-}; 
+};
+
 // @desc    Public: Get all courses for tenant "ngo"
 // @route   GET /api/public/courses
 // @access  Public
-
-const { switchTenant } = require('../utils/tenantUtils'); // adjust this path to match your project
+const { switchTenant } = require('../../utils/tenantUtils');
 
 exports.getPublicCourses = async (req, res) => {
   try {
-    const tenantId = 'ngo'; // 👈 hardcoded tenant
+    const tenantId = 'ngo';
 
     const tenantConnection = await switchTenant(tenantId);
 
@@ -617,8 +635,12 @@ exports.getPublicCourses = async (req, res) => {
 
     const Course = tenantConnection.model('Course');
 
-    const courses = await Course.find({ tenantId }) // optional: you can remove `tenantId` if not needed in schema
+    const courses = await Course.find({ 
+      tenantId,
+      status: 'published' // Only return published courses for public access
+    })
       .populate('instructor', 'name email')
+      .populate('institution', 'name')
       .sort('-createdAt')
       .lean();
 
@@ -632,6 +654,181 @@ exports.getPublicCourses = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Server error while fetching courses',
+    });
+  }
+};
+
+// @desc    Add module to course
+// @route   POST /api/courses/:id/modules
+// @access  Private/Instructor
+exports.addModuleToCourse = async (req, res) => {
+  try {
+    const connection = req.tenantConnection;
+    if (!connection) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection not available'
+      });
+    }
+
+    const { getModel } = require('../../models/NgoLms');
+    const Course = getModel(connection, 'NgoCourse');
+    
+    const course = await Course.findOne({
+      _id: req.params.id,
+      tenantId: req.tenantId
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'Course not found'
+      });
+    }
+
+    // Check authorization
+    if (course.instructor.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to add modules to this course'
+      });
+    }
+
+    // Add module to course
+    const moduleData = {
+      ...req.body,
+      course: course._id,
+      order: course.modules.length + 1
+    };
+
+    course.modules.push(moduleData);
+    await course.save();
+
+    res.status(201).json({
+      success: true,
+      data: course
+    });
+  } catch (err) {
+    console.error(`Error in addModuleToCourse: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};
+
+// @desc    Update module in course
+// @route   PUT /api/courses/:id/modules/:moduleId
+// @access  Private/Instructor
+exports.updateModuleInCourse = async (req, res) => {
+  try {
+    const connection = req.tenantConnection;
+    if (!connection) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection not available'
+      });
+    }
+
+    const { getModel } = require('../../models/NgoLms');
+    const Course = getModel(connection, 'NgoCourse');
+    
+    const course = await Course.findOne({
+      _id: req.params.id,
+      tenantId: req.tenantId
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'Course not found'
+      });
+    }
+
+    // Check authorization
+    if (course.instructor.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to update modules in this course'
+      });
+    }
+
+    // Find and update module
+    const moduleIndex = course.modules.findIndex(m => m._id.toString() === req.params.moduleId);
+    
+    if (moduleIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Module not found'
+      });
+    }
+
+    // Update module
+    course.modules[moduleIndex] = { ...course.modules[moduleIndex].toObject(), ...req.body };
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      data: course
+    });
+  } catch (err) {
+    console.error(`Error in updateModuleInCourse: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};
+
+// @desc    Delete module from course
+// @route   DELETE /api/courses/:id/modules/:moduleId
+// @access  Private/Instructor
+exports.deleteModuleFromCourse = async (req, res) => {
+  try {
+    const connection = req.tenantConnection;
+    if (!connection) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection not available'
+      });
+    }
+
+    const { getModel } = require('../../models/NgoLms');
+    const Course = getModel(connection, 'NgoCourse');
+    
+    const course = await Course.findOne({
+      _id: req.params.id,
+      tenantId: req.tenantId
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'Course not found'
+      });
+    }
+
+    // Check authorization
+    if (course.instructor.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to delete modules from this course'
+      });
+    }
+
+    // Remove module
+    course.modules = course.modules.filter(m => m._id.toString() !== req.params.moduleId);
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      data: course
+    });
+  } catch (err) {
+    console.error(`Error in deleteModuleFromCourse: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
     });
   }
 };

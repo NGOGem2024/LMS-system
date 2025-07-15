@@ -22,6 +22,7 @@ const UserProgressSchema = new mongoose.Schema({
   completionDate: {
     type: Date
   },
+
   progress: {
     type: Number, // Percentage
     default: 0,
@@ -109,6 +110,7 @@ UserProgressSchema.pre('save', function(next) {
   }
   
   next();
+  
 });
 
 module.exports = mongoose.model('UserProgress', UserProgressSchema); 

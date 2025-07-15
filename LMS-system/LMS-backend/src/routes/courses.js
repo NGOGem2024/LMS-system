@@ -7,7 +7,8 @@ const {
   deleteCourse,
   getEnrolledCourses,
   createCourseSimple,
-  enrollInCourse
+  enrollInCourse,
+  getPublicCourses
 } = require('../controllers/courseController');
 
 const router = express.Router();
@@ -28,6 +29,9 @@ router.use('/:courseId/modules', moduleRouter);
 router.route('/')
   .get(protect, getCourses)
   .post(protect, authorize('instructor', 'admin'), createCourse);
+
+// public route to get all
+  router.route('/courses').get(getPublicCourses);
 
 // Special route for enrolled courses
 router.route('/enrolled')
