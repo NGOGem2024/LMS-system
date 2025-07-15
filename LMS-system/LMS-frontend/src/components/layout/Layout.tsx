@@ -123,7 +123,7 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
           <ListItemIcon>
             <AssignmentIcon />
           </ListItemIcon>
-          <ListItemText primary="Assignments" />
+          <ListItemText primary="Resources" />
         </ListItem>
         <ListItem button onClick={() => handleNavigate('/profile')}>
           <ListItemIcon>

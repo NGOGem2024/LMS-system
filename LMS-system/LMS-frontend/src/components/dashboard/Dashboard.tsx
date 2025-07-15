@@ -175,7 +175,7 @@ const Dashboard = () => {
         </Alert>
       )}
       
-      <Grid container spacing={3}>
+      <Grid container spacing={3} justifyContent="center">
         {/* Recent Courses */}
         <Grid item xs={12} md={6}>
           <Paper
@@ -258,7 +258,7 @@ const Dashboard = () => {
         </Grid>
         
         {/* Upcoming Assignments */}
-        <Grid item xs={12} md={6}>
+        {/* <Grid item xs={12} md={6}>
           <Paper
             sx={{
               p: 2,
@@ -323,7 +323,7 @@ const Dashboard = () => {
               </Button>
             </Box>
           </Paper>
-        </Grid>
+        </Grid> */}
         
         {/* Learning Progress */}
         <Grid item xs={12}>

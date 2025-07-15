@@ -241,14 +241,14 @@ const Courses = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ 
               bgcolor: 'primary.main', 
-              width: 56, 
-              height: 56,
+              width: 40, 
+              height: 40,
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
               <SchoolIcon sx={{ fontSize: 28 }} />
             </Avatar>
             <Box>
-              <Typography variant="h4" component="h1" fontWeight="bold">
+              <Typography variant="h5" component="h1" fontWeight="bold">
                 Course Catalog
               </Typography>
               {/* <Typography variant="body1" color="text.secondary">
@@ -262,7 +262,7 @@ const Courses = () => {
               component={RouterLink}
               to="/courses/add"
               variant="contained"
-              size="large"
+              // size="large"
               startIcon={<AddIcon />}
               sx={{
                 borderRadius: 2,
@@ -288,7 +288,7 @@ const Courses = () => {
             borderColor: 'divider',
             bgcolor: 'background.paper'
           }}
-        >
+         >
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} md={6}>
               <TextField
