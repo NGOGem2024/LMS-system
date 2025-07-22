@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Grid,
@@ -52,7 +53,9 @@ import {
   Close as CloseIcon,
   VideoLibrary as ModuleIcon,
   CheckCircle as CompletedIcon,
-  AddCircle as AddModuleIcon
+  AddCircle as AddModuleIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
@@ -136,13 +139,20 @@ const CoursesTest = () => {
   const [openAddModuleDialog, setOpenAddModuleDialog] = useState(false)
   const [addingModule, setAddingModule] = useState(false)
   
+  // Delete and Update states
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [courseToEdit, setCourseToEdit] = useState<Course | null>(null)
+  const [editing, setEditing] = useState(false)
+  
   // Success/error notifications
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error'
+    severity: 'success' as 'success' | 'error' | 'info'
   })
-  
+  const navigate = useNavigate();
   // New module form state - updated to match API structure
   const [newModule, setNewModule] = useState({
     title: '',
@@ -322,6 +332,56 @@ const CoursesTest = () => {
     } finally {
       setAddingModule(false)
     }
+  }
+
+  const handleDeleteCourse = (course: Course) => {
+    setCourseToDelete(course)
+    setOpenDeleteDialog(true)
+  }
+
+  const confirmDeleteCourse = async () => {
+    if (!courseToDelete) return
+    
+    setDeleting(true)
+    try {
+      const response = await axios.delete(
+        `http://localhost:2000/api/ngo-lms/courses/${courseToDelete._id}`
+      )
+      
+      if (response.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Course deleted successfully!',
+          severity: 'success'
+        })
+        setCourses(courses.filter(course => course._id !== courseToDelete._id))
+        setFilteredCourses(filteredCourses.filter(course => course._id !== courseToDelete._id))
+      }
+    } catch (err: any) {
+      console.error('Failed to delete course:', err)
+      setSnackbar({
+        open: true,
+        message: 'Failed to delete course. Please try again.',
+        severity: 'error'
+      })
+    } finally {
+      setDeleting(false)
+      setOpenDeleteDialog(false)
+      setCourseToDelete(null)
+    }
+  }
+
+  const handleEditCourse = (course: Course) => {
+    setCourseToEdit(course)
+
+    navigate(`/coursestest/update/${course._id}`);
+    // Here you would typically open an edit dialog/form
+    // For now, we'll just show a snackbar
+    setSnackbar({
+      open: true,
+      message: 'Edit functionality will be implemented here',
+      severity: 'info'
+    })
   }
 
   const handleCloseSnackbar = () => {
@@ -616,33 +676,48 @@ const CoursesTest = () => {
                       },
                     }}
                   >
-                    {/* <Box sx={{ position: 'relative' }}>
-                      <CardMedia
-                        component="img"
-                        height="160"
-                        image={`https://source.unsplash.com/400x200?${course.iconName || 'education'},${course._id}`}
-                        alt={course.title}
-                        sx={{ 
-                          objectFit: 'cover',
-                          borderTopLeftRadius: 8,
-                          borderTopRightRadius: 8
-                        }}
-                      />
-                      
-                      <Chip
-                        label={course.status}
-                        size="small"
-                        color={course.status === 'published' ? 'primary' : 'default'}
-                        sx={{
-                          position: 'absolute',
-                          top: 12,
-                          left: 12,
-                          fontWeight: 600,
-                          fontSize: '0.7rem',
-                          textTransform: 'uppercase'
-                        }}
-                      />
-                    </Box> */}
+                    {/* Course Actions (Edit/Delete) - Only for instructors/admins */}
+                    {user && (user.role === 'instructor' || user.role === 'admin') && (
+                      <Box sx={{ 
+                        position: 'absolute', 
+                        top: 8, 
+                        right: 8,
+                        display: 'flex',
+                        gap: 1,
+                        zIndex: 1
+                      }}>
+                        <Tooltip title="Edit course">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditCourse(course)}
+                            sx={{
+                              backgroundColor: 'background.paper',
+                              '&:hover': {
+                                backgroundColor: 'primary.light',
+                                color: 'primary.contrastText'
+                              }
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete course">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteCourse(course)}
+                            sx={{
+                              backgroundColor: 'background.paper',
+                              '&:hover': {
+                                backgroundColor: 'error.light',
+                                color: 'error.contrastText'
+                              }
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    )}
 
                     <CardContent sx={{ flexGrow: 1, p: 2 }}>
                       <Box sx={{ mb: 2 }}>
@@ -949,6 +1024,39 @@ const CoursesTest = () => {
               startIcon={addingModule ? <CircularProgress size={20} /> : null}
             >
               {addingModule ? 'Adding...' : 'Add Module'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={openDeleteDialog}
+          onClose={() => setOpenDeleteDialog(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1">
+              Are you sure you want to delete the course "{courseToDelete?.title}"? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => setOpenDeleteDialog(false)}
+              color="primary"
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmDeleteCourse}
+              color="error"
+              variant="contained"
+              disabled={deleting}
+              startIcon={deleting ? <CircularProgress size={20} /> : null}
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogActions>
         </Dialog>

@@ -21,6 +21,7 @@ import CourseDetails from './components/courses/CourseDetails'
 import AddCourse from './components/courses/AddCourse'
 import CoursesTest from './components/courses/CoursesTest'
 import AddCourseTest from './components/courses/AddCourseTest'
+import UpdateCourse from './components/courses/UpdateCourse'
 // Assignment components
 import Assignments from './components/assignments/Assignments'
 import AssignmentDetails from './components/assignments/AssignmentDetails'
@@ -121,6 +122,7 @@ function App() {
               {/* Test Course */}
               <Route path="coursestest" element={<CoursesTest />} />
               <Route path="coursestest/add" element={<AddCourseTest/>} />
+              <Route path="coursestest/update/:id" element={<UpdateCourse/>} />
 
               <Route path="assignments" element={<Assignments />} />
               <Route path="assignments/create" element={<CreateAssignment />} />
