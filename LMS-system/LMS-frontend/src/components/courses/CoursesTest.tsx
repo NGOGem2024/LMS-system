@@ -137,7 +137,12 @@ const CoursesTest = () => {
   const [modulesError, setModulesError] = useState<string | null>(null)
   const [openModulesDialog, setOpenModulesDialog] = useState(false)
   const [openAddModuleDialog, setOpenAddModuleDialog] = useState(false)
+  const [openEditModuleDialog, setOpenEditModuleDialog] = useState(false)
   const [addingModule, setAddingModule] = useState(false)
+  const [editingModule, setEditingModule] = useState(false)
+  const [moduleToEdit, setModuleToEdit] = useState<Module | null>(null)
+  const [moduleToDelete, setModuleToDelete] = useState<Module | null>(null)
+  const [deletingModule, setDeletingModule] = useState(false)
   
   // Delete and Update states
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
@@ -153,6 +158,7 @@ const CoursesTest = () => {
     severity: 'success' as 'success' | 'error' | 'info'
   })
   const navigate = useNavigate();
+  
   // New module form state - updated to match API structure
   const [newModule, setNewModule] = useState({
     title: '',
@@ -334,6 +340,101 @@ const CoursesTest = () => {
     }
   }
 
+  const handleEditModule = (module: Module) => {
+    setModuleToEdit(module)
+    setNewModule({
+      title: module.title,
+      description: module.description,
+      duration: module.duration.toString(),
+      difficulty: module.difficulty,
+      videoUrl: module.videoUrl,
+      rating: module.rating
+    })
+    setOpenEditModuleDialog(true)
+  }
+
+  const handleUpdateModule = async () => {
+    if (!moduleToEdit || !selectedCourse) return
+    
+    setEditingModule(true)
+    
+    try {
+      const modulePayload = {
+        title: newModule.title,
+        description: newModule.description,
+        duration: parseInt(newModule.duration),
+        videoUrl: newModule.videoUrl,
+        difficulty: newModule.difficulty,
+        rating: newModule.rating
+      }
+      
+      const res = await axios.put(
+        `http://localhost:2000/api/ngo-lms/courses/${selectedCourse._id}/modules/${moduleToEdit._id}`,
+        modulePayload
+      )
+      
+      if (res.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Module updated successfully!',
+          severity: 'success'
+        })
+        
+        fetchModules(selectedCourse._id)
+        setOpenEditModuleDialog(false)
+        setModuleToEdit(null)
+      } else {
+        throw new Error(res.data.message || 'Failed to update module')
+      }
+    } catch (err: any) {
+      console.error('Failed to update module:', err)
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || 'Failed to update module',
+        severity: 'error'
+      })
+    } finally {
+      setEditingModule(false)
+    }
+  }
+
+  const handleDeleteModule = (module: Module) => {
+    setModuleToDelete(module)
+  }
+
+  const confirmDeleteModule = async () => {
+    if (!moduleToDelete || !selectedCourse) return
+    
+    setDeletingModule(true)
+    try {
+      const res = await axios.delete(
+        `http://localhost:2000/api/ngo-lms/courses/${selectedCourse._id}/modules/${moduleToDelete._id}`
+      )
+      
+      if (res.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Module deleted successfully!',
+          severity: 'success'
+        })
+        
+        fetchModules(selectedCourse._id)
+      } else {
+        throw new Error(res.data.message || 'Failed to delete module')
+      }
+    } catch (err: any) {
+      console.error('Failed to delete module:', err)
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || 'Failed to delete module',
+        severity: 'error'
+      })
+    } finally {
+      setDeletingModule(false)
+      setModuleToDelete(null)
+    }
+  }
+
   const handleDeleteCourse = (course: Course) => {
     setCourseToDelete(course)
     setOpenDeleteDialog(true)
@@ -373,15 +474,7 @@ const CoursesTest = () => {
 
   const handleEditCourse = (course: Course) => {
     setCourseToEdit(course)
-
     navigate(`/coursestest/update/${course._id}`);
-    // Here you would typically open an edit dialog/form
-    // For now, we'll just show a snackbar
-    setSnackbar({
-      open: true,
-      message: 'Edit functionality will be implemented here',
-      severity: 'info'
-    })
   }
 
   const handleCloseSnackbar = () => {
@@ -891,6 +984,28 @@ const CoursesTest = () => {
                         </>
                       }
                     />
+                    {user && (user.role === 'instructor' || user.role === 'admin') && (
+                      <Box sx={{ display: 'flex' }}>
+                        <Tooltip title="Edit module">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditModule(module)}
+                            sx={{ mr: 1 }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete module">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteModule(module)}
+                            sx={{ color: 'error.main' }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    )}
                   </ListItem>
                 ))}
               </List>
@@ -1028,7 +1143,153 @@ const CoursesTest = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Delete Confirmation Dialog */}
+        {/* Edit Module Dialog */}
+        <Dialog 
+          open={openEditModuleDialog} 
+          onClose={() => setOpenEditModuleDialog(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6">
+                Edit Module: {moduleToEdit?.title}
+              </Typography>
+              <IconButton onClick={() => setOpenEditModuleDialog(false)}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent dividers>
+            <Box component="form" sx={{ pt: 2 }}>
+              <TextField
+                fullWidth
+                label="Module Title"
+                value={newModule.title}
+                onChange={(e) => setNewModule({...newModule, title: e.target.value})}
+                margin="normal"
+                required
+                error={!newModule.title.trim() && newModule.title !== ''}
+                helperText={!newModule.title.trim() && newModule.title !== '' ? 'Title is required' : ''}
+              />
+              <TextField
+                fullWidth
+                label="Description"
+                value={newModule.description}
+                onChange={(e) => setNewModule({...newModule, description: e.target.value})}
+                margin="normal"
+                multiline
+                rows={3}
+                required
+                error={!newModule.description.trim() && newModule.description !== ''}
+                helperText={!newModule.description.trim() && newModule.description !== '' ? 'Description is required' : ''}
+              />
+              <TextField
+                fullWidth
+                label="Duration (hours)"
+                type="number"
+                value={newModule.duration}
+                onChange={(e) => setNewModule({...newModule, duration: e.target.value})}
+                margin="normal"
+                required
+                inputProps={{ min: 1, step: 0.5 }}
+                error={!newModule.duration || isNaN(parseInt(newModule.duration)) || parseInt(newModule.duration) <= 0}
+                helperText={
+                  !newModule.duration ? 'Duration is required' :
+                  isNaN(parseInt(newModule.duration)) || parseInt(newModule.duration) <= 0 ? 'Duration must be a positive number' : ''
+                }
+              />
+              <TextField
+                fullWidth
+                label="Video URL"
+                value={newModule.videoUrl}
+                onChange={(e) => setNewModule({...newModule, videoUrl: e.target.value})}
+                margin="normal"
+                required
+                error={!newModule.videoUrl.trim() && newModule.videoUrl !== ''}
+                helperText={!newModule.videoUrl.trim() && newModule.videoUrl !== '' ? 'Video URL is required' : ''}
+              />
+              <TextField
+                fullWidth
+                select
+                label="Difficulty"
+                value={newModule.difficulty}
+                onChange={(e) => setNewModule({...newModule, difficulty: e.target.value})}
+                margin="normal"
+                SelectProps={{
+                  native: true,
+                }}
+              >
+                {['Beginner', 'Intermediate', 'Advanced'].map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </TextField>
+              <TextField
+                fullWidth
+                label="Rating"
+                type="number"
+                value={newModule.rating}
+                onChange={(e) => setNewModule({...newModule, rating: parseFloat(e.target.value) || 4.5})}
+                margin="normal"
+                inputProps={{ min: 1, max: 5, step: 0.1 }}
+                helperText="Rating between 1.0 and 5.0"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => setOpenEditModuleDialog(false)}
+              color="primary"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateModule}
+              variant="contained"
+              disabled={!isModuleFormValid() || editingModule}
+              startIcon={editingModule ? <CircularProgress size={20} /> : null}
+            >
+              {editingModule ? 'Updating...' : 'Update Module'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Module Confirmation Dialog */}
+        <Dialog
+          open={!!moduleToDelete}
+          onClose={() => setModuleToDelete(null)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1">
+              Are you sure you want to delete the module "{moduleToDelete?.title}"? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => setModuleToDelete(null)}
+              color="primary"
+              disabled={deletingModule}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmDeleteModule}
+              color="error"
+              variant="contained"
+              disabled={deletingModule}
+              startIcon={deletingModule ? <CircularProgress size={20} /> : null}
+            >
+              {deletingModule ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Course Confirmation Dialog */}
         <Dialog
           open={openDeleteDialog}
           onClose={() => setOpenDeleteDialog(false)}
