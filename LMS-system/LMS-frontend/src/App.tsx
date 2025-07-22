@@ -19,7 +19,8 @@ import Dashboard from './components/dashboard/Dashboard'
 import Courses from './components/courses/Courses'
 import CourseDetails from './components/courses/CourseDetails'
 import AddCourse from './components/courses/AddCourse'
-
+import CoursesTest from './components/courses/CoursesTest'
+import AddCourseTest from './components/courses/AddCourseTest'
 // Assignment components
 import Assignments from './components/assignments/Assignments'
 import AssignmentDetails from './components/assignments/AssignmentDetails'
@@ -112,13 +113,20 @@ function App() {
               </ProtectedRoute>
             }>
               <Route index element={<Dashboard />} />
+              
               <Route path="courses" element={<Courses />} />
               <Route path="courses/add" element={<AddCourse />} />
               <Route path="courses/:id" element={<CourseDetails />} />
+
+              {/* Test Course */}
+              <Route path="coursestest" element={<CoursesTest />} />
+              <Route path="coursestest/add" element={<AddCourseTest/>} />
+
               <Route path="assignments" element={<Assignments />} />
               <Route path="assignments/create" element={<CreateAssignment />} />
               <Route path="assignments/:id" element={<AssignmentDetails />} />
               <Route path="assignments/:id/submit" element={<SubmitAssignment />} />
+
               <Route path="quizzes" element={<Quizzes />} />
               <Route path="quizzes/:id" element={<QuizAttempt />} />
               <Route path="courses/:courseId/quizzes" element={<Quizzes />} />

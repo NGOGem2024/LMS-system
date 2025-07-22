@@ -130,7 +130,7 @@ const Dashboard = () => {
           })
         }
       } catch (err: any) {
-        setError('Failed to load dashboard data. Please try again later.')
+        // setError('Failed to load dashboard data. Please try again later.')
         console.error(err)
       } finally {
         setLoading(false)
@@ -258,7 +258,7 @@ const Dashboard = () => {
         </Grid>
         
         {/* Upcoming Assignments */}
-        {/* <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6}>
           <Paper
             sx={{
               p: 2,
@@ -270,7 +270,7 @@ const Dashboard = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <AssignmentIcon color="primary" sx={{ mr: 1 }} />
               <Typography component="h2" variant="h6" color="primary" gutterBottom>
-                Upcoming Assignments
+                Knowledge Check
               </Typography>
             </Box>
             
@@ -307,7 +307,7 @@ const Dashboard = () => {
             ) : (
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                 <Typography variant="body1" color="text.secondary">
-                  No upcoming assignments.
+                  No upcoming resources.
                 </Typography>
               </Box>
             )}
@@ -319,11 +319,11 @@ const Dashboard = () => {
                 variant="outlined" 
                 fullWidth
               >
-                View All Assignments
+                View All Resources
               </Button>
             </Box>
           </Paper>
-        </Grid> */}
+        </Grid>
         
         {/* Learning Progress */}
         <Grid item xs={12}>

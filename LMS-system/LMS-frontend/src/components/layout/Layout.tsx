@@ -119,6 +119,13 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
           </ListItemIcon>
           <ListItemText primary="Courses" />
         </ListItem>
+        <ListItem button onClick={() => handleNavigate('/coursestest')}>
+          <ListItemIcon>
+            <SchoolIcon />
+          </ListItemIcon>
+          <ListItemText primary="Test Courses" />
+        </ListItem>
+        
         <ListItem button onClick={() => handleNavigate('/assignments')}>
           <ListItemIcon>
             <AssignmentIcon />

@@ -331,7 +331,7 @@ const Assignments = () => {
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <AssignmentIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
           <Typography variant="h4" component="h1">
-            Assignments
+            Resources
           </Typography>
         </Box>
         

@@ -1,4 +1,4 @@
-import { useState, useContext, FormEvent, useEffect } from 'react'
+import { useState, useContext, FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Avatar,
@@ -21,45 +21,26 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import AuthContext from '../../context/AuthContext'
 import axios from 'axios'
 import { LoadingButton } from '../ui/LoadingComponents'
-
+ 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [selectedTenant, setSelectedTenant] = useState('default')
   const [formErrors, setFormErrors] = useState<{email?: string, password?: string}>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [serverStatus, setServerStatus] = useState<string | null>(null)
-  
+ 
   const { login, error, clearError, tenantId, setTenantId } = useContext(AuthContext)
-
-  // Available tenants
-  const tenants = [
-    { id: 'default', name: 'LearnMsDb' },
-    { id: 'ngo', name: 'NgoLms' }
+ 
+  // Available organizations with user-friendly names
+  const organizations = [
+    { id: 'default', name: 'Learnomic' },
+    { id: 'ngo', name: 'NobleGiving' }
   ]
-
-  // Check server status when component loads
-  useEffect(() => {
-    const checkServer = async () => {
-      try {
-        await axios.get('/')
-        setServerStatus('Server is online')
-      } catch (err) {
-        if (axios.isAxiosError(err) && !err.response) {
-          setServerStatus('Server is offline. Please make sure the backend server is running.')
-        } else {
-          setServerStatus(null)
-        }
-      }
-    }
-    
-    checkServer()
-  }, [])
-
+ 
   const validateForm = () => {
     const errors: {email?: string, password?: string} = {}
     let isValid = true
-
+ 
     if (!email) {
       errors.email = 'Email is required'
       isValid = false
@@ -67,35 +48,35 @@ const Login = () => {
       errors.email = 'Email is invalid'
       isValid = false
     }
-
+ 
     if (!password) {
       errors.password = 'Password is required'
       isValid = false
     }
-
+ 
     setFormErrors(errors)
     return isValid
   }
-
+ 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     clearError()
-    
+   
     if (validateForm()) {
       setIsSubmitting(true)
-      
+     
       try {
         // Use direct axios call with explicit headers for better error handling
-        const response = await axios.post('/api/auth/login', 
+        const response = await axios.post('/api/auth/login',
           { email, password },
-          { 
-            headers: { 
+          {
+            headers: {
               'x-tenant-id': selectedTenant,
               'Content-Type': 'application/json'
             }
           }
         )
-        
+       
         console.log('Login successful:', response.data)
         // If successful direct call, use the context method to update state
         await login(email, password, selectedTenant)
@@ -106,15 +87,15 @@ const Login = () => {
       }
     }
   }
-
+ 
   const handleTenantChange = (e: SelectChangeEvent) => {
     setSelectedTenant(e.target.value)
     setTenantId(e.target.value)
   }
-
+ 
   return (
     <Container component="main" maxWidth="xs">
-      <Paper 
+      <Paper
         elevation={3}
         sx={{
           marginTop: 8,
@@ -130,37 +111,31 @@ const Login = () => {
         <Typography component="h1" variant="h5">
           Sign in
         </Typography>
-        
-        {serverStatus && (
-          <Alert severity={serverStatus.includes('offline') ? 'error' : 'info'} sx={{ width: '100%', mt: 2 }}>
-            {serverStatus}
-          </Alert>
-        )}
-        
+       
         {error && (
           <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
             {error}
           </Alert>
         )}
-        
+       
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <FormControl fullWidth margin="normal">
-            <InputLabel id="tenant-select-label">Database</InputLabel>
+            <InputLabel id="tenant-select-label">Organization</InputLabel>
             <Select
               labelId="tenant-select-label"
               id="tenant-select"
               value={selectedTenant}
-              label="Database"
+              label="Organization"
               onChange={handleTenantChange}
             >
-              {tenants.map((tenant) => (
-                <MenuItem key={tenant.id} value={tenant.id}>
-                  {tenant.name}
+              {organizations.map((org) => (
+                <MenuItem key={org.id} value={org.id}>
+                  {org.name}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
-          
+         
           <TextField
             margin="normal"
             required
@@ -217,5 +192,5 @@ const Login = () => {
     </Container>
   )
 }
-
-export default Login 
+ 
+export default Login

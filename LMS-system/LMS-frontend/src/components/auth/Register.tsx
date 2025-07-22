@@ -1,4 +1,4 @@
-import { useState, useContext, FormEvent, useEffect } from 'react'
+import { useState, useContext, FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Avatar,
@@ -21,7 +21,7 @@ import {
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import AuthContext from '../../context/AuthContext'
 import axios from 'axios'
-
+ 
 const Register = () => {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -30,47 +30,28 @@ const Register = () => {
   const [selectedTenant, setSelectedTenant] = useState('default')
   const [role, setRole] = useState('student')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [serverStatus, setServerStatus] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState<{
     name?: string,
     email?: string,
     password?: string,
     confirmPassword?: string
   }>({})
-  
+ 
   const { register, error, clearError, tenantId, setTenantId } = useContext(AuthContext)
-
-  // Available tenants
-  const tenants = [
-    { id: 'default', name: 'LearnMsDb' },
-    { id: 'ngo', name: 'NgoLms' }
+ 
+  // Available organizations with user-friendly names
+  const organizations = [
+    { id: 'default', name: 'Learnomic' },
+    { id: 'ngo', name: 'NobleGiving' }
   ]
-
+ 
   // Available roles
   const roles = [
     { value: 'student', label: 'Student' },
     { value: 'instructor', label: 'Instructor' },
     { value: 'admin', label: 'Admin' }
   ]
-
-  // Check server status when component loads
-  useEffect(() => {
-    const checkServer = async () => {
-      try {
-        await axios.get('/')
-        setServerStatus('Server is online')
-      } catch (err) {
-        if (axios.isAxiosError(err) && !err.response) {
-          setServerStatus('Server is offline. Please make sure the backend server is running.')
-        } else {
-          setServerStatus(null)
-        }
-      }
-    }
-    
-    checkServer()
-  }, [])
-
+ 
   const validateForm = () => {
     const errors: {
       name?: string,
@@ -79,12 +60,12 @@ const Register = () => {
       confirmPassword?: string
     } = {}
     let isValid = true
-
+ 
     if (!name) {
       errors.name = 'Name is required'
       isValid = false
     }
-
+ 
     if (!email) {
       errors.email = 'Email is required'
       isValid = false
@@ -92,7 +73,7 @@ const Register = () => {
       errors.email = 'Email is invalid'
       isValid = false
     }
-
+ 
     if (!password) {
       errors.password = 'Password is required'
       isValid = false
@@ -100,7 +81,7 @@ const Register = () => {
       errors.password = 'Password must be at least 6 characters'
       isValid = false
     }
-
+ 
     if (!confirmPassword) {
       errors.confirmPassword = 'Please confirm your password'
       isValid = false
@@ -108,24 +89,24 @@ const Register = () => {
       errors.confirmPassword = 'Passwords do not match'
       isValid = false
     }
-
+ 
     setFormErrors(errors)
     return isValid
   }
-
+ 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     clearError()
-    
+   
     if (validateForm()) {
       setIsSubmitting(true)
-      
+     
       try {
         console.log(`Registering user with email: ${email}, tenant: ${selectedTenant}, role: ${role}`)
-        
+       
         // Use the context method to register which will update state properly
         await register(name, email, password, selectedTenant, role)
-        
+       
         // If we get here, registration was successful
         console.log('Registration successful through context')
       } catch (err) {
@@ -135,19 +116,19 @@ const Register = () => {
       }
     }
   }
-
+ 
   const handleTenantChange = (e: SelectChangeEvent) => {
     setSelectedTenant(e.target.value)
     setTenantId(e.target.value)
   }
-
+ 
   const handleRoleChange = (e: SelectChangeEvent) => {
     setRole(e.target.value)
   }
-
+ 
   return (
     <Container component="main" maxWidth="xs">
-      <Paper 
+      <Paper
         elevation={3}
         sx={{
           marginTop: 8,
@@ -163,34 +144,28 @@ const Register = () => {
         <Typography component="h1" variant="h5">
           Sign up
         </Typography>
-        
-        {serverStatus && (
-          <Alert severity={serverStatus.includes('offline') ? 'error' : 'info'} sx={{ width: '100%', mt: 2 }}>
-            {serverStatus}
-          </Alert>
-        )}
-        
+       
         {error && (
           <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
             {error}
           </Alert>
         )}
-        
+       
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <FormControl fullWidth>
-                <InputLabel id="tenant-select-label">Database</InputLabel>
+                <InputLabel id="tenant-select-label">Organization</InputLabel>
                 <Select
                   labelId="tenant-select-label"
                   id="tenant-select"
                   value={selectedTenant}
-                  label="Database"
+                  label="Organization"
                   onChange={handleTenantChange}
                 >
-                  {tenants.map((tenant) => (
-                    <MenuItem key={tenant.id} value={tenant.id}>
-                      {tenant.name}
+                  {organizations.map((org) => (
+                    <MenuItem key={org.id} value={org.id}>
+                      {org.name}
                     </MenuItem>
                   ))}
                 </Select>
@@ -294,5 +269,5 @@ const Register = () => {
     </Container>
   )
 }
-
-export default Register 
+ 
+export default Register
