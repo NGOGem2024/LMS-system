@@ -65,10 +65,9 @@ app.use('/api/institutions', require('./src/routes/institutions'));
 app.use('/api/progress', require('./src/routes/userProgress'));
 app.use('/api/modules', require('./src/routes/modules'));
 app.use('/api/content', require('./src/routes/content'));
-
 // NGO LMS specific routes
-app.use('/api/ngo-lms', require('./src/routes/ngolms/courses'));
-
+app.use('/api/ngo-lms',require('./src/routes/ng/Ngocourse'))
+app.use('/api/ngo-lms',require('./src/routes/ng/Ngomodules'))
 // Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to LMS API with Multi-tenant support' });

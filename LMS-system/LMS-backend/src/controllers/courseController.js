@@ -1,4 +1,5 @@
 const Course = require('../models/Course');
+
 const path = require('path');
 const fs = require('fs');
 
@@ -27,6 +28,7 @@ exports.getCourses = async (req, res) => {
       });
     }
 
+    
     // Get Course model from tenant connection
     const CourseModel = req.tenantConnection.model('Course');
     console.log(`GetCourses: Got Course model for tenant: ${req.tenantId}`);

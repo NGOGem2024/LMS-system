@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const CourseSchema = new mongoose.Schema({
+const NgoCourseSchema = new mongoose.Schema({
   title: {
     type: String,
     required: [true, 'Please add a title'],
@@ -16,29 +16,6 @@ const CourseSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a description']
   },
-  shortDescription: {
-    type: String,
-    maxlength: [200, 'Short description cannot be more than 200 characters']
-  },
-  duration: {
-    type: Number,
-    required: [true, 'Please add course duration in weeks']
-  },
-  level: {
-    type: String,
-    enum: ['beginner', 'intermediate', 'advanced'],
-    default: 'beginner'
-  },
-  category: {
-    type: String,
-    required: [true, 'Please add a category']
-  },
-
-  tags: [String],
-  thumbnail: {
-    type: String,
-    default: 'no-photo.jpg'
-  },
   price: {
     type: Number,
     default: 0
@@ -52,23 +29,25 @@ const CourseSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  instructor: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'User',
-    required: true
+  // instructor: {
+  //   type: mongoose.Schema.ObjectId,
+  //   ref: 'User',
+  //   required: true
+  // },
+  // institution: {
+  //   type: mongoose.Schema.ObjectId,
+  //   ref: 'Institution'
+  // },
+  iconName: {  // Changed from 'icon' to store icon identifier (e.g., "Users", "Target")
+    type: String,
+    required: true,
+    enum: ['Users', 'Target', 'Video', 'FileText'] // Add all Lucide icons used
   },
-  institution: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'Institution'
-  },
-  enrollmentCount: {
+  progress: {
     type: Number,
+    min: 0,
+    max: 100,
     default: 0
-  },
-  rating: {
-    type: Number,
-    min: [1, 'Rating must be at least 1'],
-    max: [5, 'Rating cannot be more than 5']
   },
   createdAt: {
     type: Date,
@@ -89,7 +68,7 @@ const CourseSchema = new mongoose.Schema({
 });
 
 // Create course slug from the title
-CourseSchema.pre('save', function(next) {
+NgoCourseSchema.pre('save', function(next) {
   this.slug = this.title
     .toLowerCase()
     .replace(/ /g, '-')
@@ -100,7 +79,7 @@ CourseSchema.pre('save', function(next) {
 });
 
 // Cascade delete modules, lessons and assignments when a course is deleted
-CourseSchema.pre('remove', async function(next) {
+NgoCourseSchema.pre('remove', async function(next) {
   console.log(`Deleting modules, lessons and assignments for course ${this._id}`);
   // Here we would add the logic to delete related documents
   // await this.model('Module').deleteMany({ course: this._id });
@@ -109,11 +88,17 @@ CourseSchema.pre('remove', async function(next) {
 
 // Reverse populate with virtual
 
-CourseSchema.virtual('modules', {
-  ref: 'Module',
+NgoCourseSchema.virtual('modules', {
+  ref: 'Ngomodule',
   localField: '_id',
-  foreignField: 'course',
+  foreignField: 'courseId',
   justOne: false
 });
+// Calculate progress automatically
+NgoCourseSchema.virtual('calculatedProgress').get(function() {
+  if (!this.modules || this.modules.length === 0) return 0;
+  const completedCount = this.modules.filter(m => m.isCompleted).length;
+  return Math.round((completedCount / this.modules.length) * 100);
+});
 
-module.exports = mongoose.model('Course', CourseSchema); 
+module.exports = mongoose.model('Ngocourse', NgoCourseSchema); 

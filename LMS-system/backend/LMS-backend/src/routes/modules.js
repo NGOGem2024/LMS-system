@@ -1,5 +1,4 @@
 const express = require('express');
-
 const router = express.Router({ mergeParams: true });
 const {
   getModules,
@@ -7,26 +6,23 @@ const {
   createModule,
   updateModule,
   deleteModule
-} = require('../../controllers/ngolms/moduleController');
+} = require('../controllers/moduleController');
 
 const {
-  
   getModuleContent,
-  createContent,
-  updateContent,
-  deleteContent
-} = require('../../controllers/ngolms/moduleContentController');
+  createContent
+} = require('../controllers/moduleContentController');
 
 // Import middleware
-const { protect, authorize } = require('../../middleware/authMiddleware');
-const tenantMiddleware = require('../../middleware/tenantMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware');
+const tenantMiddleware = require('../middleware/tenantMiddleware');
 
 // Apply tenant middleware to all routes
 router.use(tenantMiddleware);
 
 // Module routes
 router.route('/')
-  .get(protect, getModules)
+  .get(getModules)
   .post(protect, authorize('instructor', 'admin'), createModule);
 
 router.route('/:id')
@@ -35,13 +31,8 @@ router.route('/:id')
   .delete(protect, authorize('instructor', 'admin'), deleteModule);
 
 // Module content routes
-router.route('/:moduleId/contents')
+router.route('/:moduleId/content')
   .get(protect, getModuleContent)
   .post(protect, authorize('instructor', 'admin'), createContent);
 
-router.route('/:moduleId/contents/:contentId')
-  .get(protect, getModuleContent)
-  .put(protect, authorize('instructor', 'admin'), updateContent)
-  .delete(protect, authorize('instructor', 'admin'), deleteContent);
-
-module.exports = router;
+module.exports = router; 

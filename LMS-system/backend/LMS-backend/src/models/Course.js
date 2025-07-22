@@ -108,7 +108,6 @@ CourseSchema.pre('remove', async function(next) {
 });
 
 // Reverse populate with virtual
-
 CourseSchema.virtual('modules', {
   ref: 'Module',
   localField: '_id',

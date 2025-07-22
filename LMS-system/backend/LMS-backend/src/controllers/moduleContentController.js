@@ -2,7 +2,6 @@ const ModuleContent = require('../models/ModuleContent');
 const Module = require('../models/Module');
 const Course = require('../models/Course');
 
-
 // @desc    Get all content for a module
 // @route   GET /api/modules/:moduleId/content
 // @access  Private

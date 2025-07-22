@@ -1,24 +1,22 @@
 const express = require('express');
-const {
-  getCourses,
-  getCourse,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  getEnrolledCourses,
-  createCourseSimple,
-  enrollInCourse,
-  getPublicCourses
-} = require('../../controllers/NgoLms/course');
+const router = express.Router();
 
-const router = express.Router({ mergeParams: true });
+// Import controllers and middleware
+const { 
+  getCourses,           
+  getCourse,            
+  createCourse,         
+  updateCourse,        
+  deleteCourse,        
+  getEnrolledCourses,  
+  createCourseSimple,   
+  enrollInCourse,       
+  getPublicCourses      
+} = require('../../controllers/NgoLms/courseController');
 
-// Include other resource routers
-const moduleRouter = require('../../routes/modules');
-
-// Import middleware
 const { protect, authorize } = require('../../middleware/authMiddleware');
 const tenantMiddleware = require('../../middleware/tenantMiddleware');
+const moduleRouter = require('../ngolms/module');
 
 // Apply tenant middleware to all routes
 router.use(tenantMiddleware);
@@ -26,43 +24,38 @@ router.use(tenantMiddleware);
 // ======================
 // PUBLIC ROUTES
 // ======================
-router.get('/public/courses', getPublicCourses);
+
+/**
+ * @route   GET /api/ngo-lms/courses/public
+ * @desc    Get all public NGO courses
+ * @access  Public
+ */
+router.get('/courses/public', getPublicCourses);
 
 // ======================
-// PROTECT ALL ROUTES BELOW
+// PROTECTED ROUTES
 // ======================
-router.use(protect);
+router.use(protect); // All routes below require authentication
 
-// ======================
-// COURSE MODULES ROUTES
-// ======================
-router.use('/courses/:courseId/modules', moduleRouter);
-
-// ======================
-// COURSE ROUTES
-// ======================
+// CRUD Operations
 router.route('/courses')
-  .get(getCourses) // Get all courses
-  .post(authorize('instructor', 'admin'), createCourse); // Create new course
+  .get(getCourses)                 // GET /api/ngo-lms/courses
+  .post(authorize('admin'), createCourse); // POST /api/ngo-lms/courses
 
-// ======================
-// ENROLLMENT ROUTES
-// ======================
-router.get('/courses/enrolled', getEnrolledCourses); // Get enrolled courses
-router.post('/courses/:id/enroll', enrollInCourse); // Enroll in a course
+router.route('/courses/simple')
+  .post(authorize('admin'), createCourseSimple); // POST /api/ngo-lms/courses/simple
 
-// ======================
-// ADMIN/INSTRUCTOR ROUTES
-// ======================
-router.post('/admin/courses', authorize('admin'), createCourse); // Admin-only course creation
-router.post('/courses/simple', authorize('instructor', 'admin'), createCourseSimple); // Simplified course creation
+router.route('/courses/enrolled')
+  .get(getEnrolledCourses); // GET /api/ngo-lms/courses/enrolled
 
-// ======================
-// SINGLE COURSE ROUTES
-// ======================
 router.route('/courses/:id')
-  .get(getCourse) // Get single course
-  .put(authorize('instructor', 'admin'), updateCourse) // Update course
-  .delete(authorize('instructor', 'admin'), deleteCourse); // Delete course
+  .get(getCourse)                   // GET /api/ngo-lms/courses/:id
+  .put(authorize('admin'), updateCourse)   // PUT /api/ngo-lms/courses/:id
+  .delete(authorize('admin'), deleteCourse); // DELETE /api/ngo-lms/courses/:id
+
+router.post('/courses/:id/enroll', enrollInCourse); // POST /api/ngo-lms/courses/:id/enroll
+
+// Module sub-router
+router.use('/courses/:courseId/modules', moduleRouter);
 
 module.exports = router;
