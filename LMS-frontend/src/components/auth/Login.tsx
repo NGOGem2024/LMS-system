@@ -1,26 +1,14 @@
 import { useState, useContext, FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
-import {
-  Avatar,
-  Button,
-  TextField,
-  Link,
-  Grid,
-  Box,
-  Typography,
-  Container,
-  Alert,
-  Paper,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  SelectChangeEvent
-} from '@mui/material'
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import { 
+  LockClosedIcon, 
+  ChevronDownIcon,
+  EnvelopeIcon,
+  KeyIcon,
+  BuildingOfficeIcon
+} from '@heroicons/react/24/outline'
 import AuthContext from '../../context/AuthContext'
 import axios from 'axios'
-import { LoadingButton } from '../ui/LoadingComponents'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -88,108 +76,156 @@ const Login = () => {
     }
   }
 
-  const handleTenantChange = (e: SelectChangeEvent) => {
+  const handleTenantChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedTenant(e.target.value)
     setTenantId(e.target.value)
   }
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Paper 
-        elevation={3}
-        sx={{
-          marginTop: 8,
-          padding: 4,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
-          <LockOutlinedIcon />
-        </Avatar>
-        <Typography component="h1" variant="h5">
-          Sign in
-        </Typography>
-        
-        {error && (
-          <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <FormControl fullWidth margin="normal">
-            <InputLabel id="tenant-select-label">Organization</InputLabel>
-            <Select
-              labelId="tenant-select-label"
-              id="tenant-select"
-              value={selectedTenant}
-              label="Organization"
-              onChange={handleTenantChange}
-            >
-              {organizations.map((org) => (
-                <MenuItem key={org.id} value={org.id}>
-                  {org.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={!!formErrors.email}
-            helperText={formErrors.email}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={!!formErrors.password}
-            helperText={formErrors.password}
-          />
-          <LoadingButton loading={isSubmitting}>
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={isSubmitting}
-            >
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0f1c] py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-8 shadow-xl animate-fade-in">
+          <div className="flex flex-col items-center">
+            {/* Animated gradient border with reduced intensity */}
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/80 via-purple-500/80 to-pink-500/80 animate-gradient p-0.5">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 animate-spin-slow blur-sm opacity-30"></div>
+                <div className="relative w-full h-full rounded-full bg-gradient-to-r from-blue-500/90 to-purple-500/90 flex items-center justify-center overflow-hidden shadow-md shadow-blue-500/10">
+                  <LockClosedIcon className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            </div>
+            
+            <h1 className="mt-6 text-3xl font-bold text-white">
               Sign In
-            </Button>
-          </LoadingButton>
-          <Grid container>
-            <Grid item xs>
-              <Link component={RouterLink} to="/forgot-password" variant="body2">
+            </h1>
+            <p className="mt-2 text-gray-400">
+              Welcome back! Please enter your details.
+            </p>
+          </div>
+          
+          {error && (
+            <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg animate-slide-in-down">
+              {error}
+            </div>
+          )}
+          
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="tenant-select" className="block text-sm font-medium text-gray-200 mb-2">
+                  Organization
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <BuildingOfficeIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="tenant-select"
+                    value={selectedTenant}
+                    onChange={handleTenantChange}
+                    className="block w-full pl-10 pr-10 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 appearance-none cursor-pointer hover:bg-white/10 transition-colors"
+                  >
+                    {organizations.map((org) => (
+                      <option key={org.id} value={org.id} className="bg-[#1e2736] text-white">
+                        {org.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                    <ChevronDownIcon className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`block w-full pl-10 pr-3 py-2 bg-white/5 border ${
+                      formErrors.email ? 'border-red-500' : 'border-white/10'
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400`}
+                    placeholder="Enter your email"
+                  />
+                </div>
+                {formErrors.email && (
+                  <p className="mt-2 text-sm text-red-500">{formErrors.email}</p>
+                )}
+              </div>
+              
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <KeyIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`block w-full pl-10 pr-3 py-2 bg-white/5 border ${
+                      formErrors.password ? 'border-red-500' : 'border-white/10'
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400`}
+                    placeholder="••••••••"
+                  />
+                </div>
+                {formErrors.password && (
+                  <p className="mt-2 text-sm text-red-500">{formErrors.password}</p>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex justify-center items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#0a0f1c] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : 'Sign In'}
+              </button>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+              <RouterLink 
+                to="/forgot-password" 
+                className="text-gray-400 hover:text-white transition-colors"
+              >
                 Forgot password?
-              </Link>
-            </Grid>
-            <Grid item>
-              <Link component={RouterLink} to="/register" variant="body2">
-                {"Don't have an account? Sign Up"}
-              </Link>
-            </Grid>
-          </Grid>
-        </Box>
-      </Paper>
-    </Container>
+              </RouterLink>
+              <RouterLink 
+                to="/register" 
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Don't have an account? Sign Up
+              </RouterLink>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   )
 }
 

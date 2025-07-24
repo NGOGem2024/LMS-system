@@ -1,29 +1,5 @@
 import { useState, useEffect, FormEvent, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Container,
-  Typography,
-  Box,
-  Paper,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Alert,
-  CircularProgress,
-  Chip,
-  Grid,
-  Switch,
-  FormControlLabel,
-  InputAdornment
-} from '@mui/material'
-import { SelectChangeEvent } from '@mui/material/Select'
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import axios from 'axios'
 
 interface Course {
@@ -157,7 +133,7 @@ const CreateAssignment = () => {
   }, [formData.course]);
 
   // Handle change for text inputs
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -166,7 +142,7 @@ const CreateAssignment = () => {
   };
   
   // Handle change for select inputs
-  const handleSelectChange = (e: SelectChangeEvent<unknown>, child: ReactNode) => {
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name) {
       setFormData({
@@ -176,10 +152,10 @@ const CreateAssignment = () => {
     }
   };
 
-  const handleDateChange = (newDate: Date | null) => {
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      dueDate: newDate
+      dueDate: e.target.value ? new Date(e.target.value) : null
     });
   };
   
@@ -253,294 +229,336 @@ const CreateAssignment = () => {
     }
   };
 
+  // Format date for datetime-local input
+  const formatDateForInput = (date: Date | null) => {
+    if (!date) return '';
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  // Add a base class for all select elements
+  const selectClassName = `
+    block w-full px-3 py-2 
+    bg-[#1e2736] border border-white/10 
+    rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent 
+    text-white 
+    disabled:opacity-50
+    [&>option]:bg-[#1e2736] [&>option]:text-white
+  `;
+
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h5" component="h1" gutterBottom>
-            Create New Assignment
-          </Typography>
-          
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          {success && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {success}
-            </Alert>
-          )}
-          
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
+    <div className="container mx-auto px-6 py-8 max-w-4xl">
+      <div className="bg-[#1e2736] backdrop-blur-sm rounded-lg p-6">
+        <h1 className="text-2xl font-bold text-white mb-6">
+          Create New Assignment
+        </h1>
+        
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-md p-4 mb-6">
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-500/10 border border-green-500/20 text-green-500 rounded-md p-4 mb-6">
+            {success}
+          </div>
+        )}
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-200 mb-1">
+              Assignment Title *
+            </label>
+            <input
+              type="text"
               id="title"
-              label="Assignment Title"
               name="title"
               value={formData.title}
               onChange={handleInputChange}
               disabled={loading}
-              error={!formData.title && error !== null}
-              helperText={!formData.title && error !== null ? 'Title is required' : ''}
-            />
-            
-            <TextField
-              margin="normal"
               required
-              fullWidth
-              multiline
-              rows={2}
+              className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+              placeholder="Enter assignment title"
+            />
+            {!formData.title && error !== null && (
+              <p className="mt-1 text-sm text-red-500">Title is required</p>
+            )}
+          </div>
+          
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-200 mb-1">
+              Short Description *
+            </label>
+            <textarea
               id="description"
-              label="Short Description"
               name="description"
+              rows={2}
               value={formData.description}
               onChange={handleInputChange}
               disabled={loading}
-              error={!formData.description && error !== null}
-              helperText={!formData.description && error !== null ? 'Description is required' : ''}
-            />
-            
-            <TextField
-              margin="normal"
               required
-              fullWidth
-              multiline
-              rows={4}
+              className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+              placeholder="Brief description of the assignment"
+            />
+            {!formData.description && error !== null && (
+              <p className="mt-1 text-sm text-red-500">Description is required</p>
+            )}
+          </div>
+          
+          <div>
+            <label htmlFor="instructions" className="block text-sm font-medium text-gray-200 mb-1">
+              Detailed Instructions *
+            </label>
+            <textarea
               id="instructions"
-              label="Detailed Instructions"
               name="instructions"
+              rows={4}
               value={formData.instructions}
               onChange={handleInputChange}
               disabled={loading}
-              error={!formData.instructions && error !== null}
-              helperText={!formData.instructions && error !== null ? 'Instructions are required' : ''}
+              required
+              className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+              placeholder="Detailed instructions for students"
             />
+            {!formData.instructions && error !== null && (
+              <p className="mt-1 text-sm text-red-500">Instructions are required</p>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="course" className="block text-sm font-medium text-gray-200 mb-1">
+                Course *
+              </label>
+              <select
+                id="course"
+                name="course"
+                value={formData.course}
+                onChange={handleSelectChange}
+                disabled={loading || loadingCourses}
+                required
+                className={selectClassName}
+              >
+                <option value="" className="bg-[#1e2736] text-white">Select a course</option>
+                {courses.map((course) => (
+                  <option key={course._id} value={course._id} className="bg-[#1e2736] text-white">
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+              {!formData.course && error !== null && (
+                <p className="mt-1 text-sm text-red-500">Course is required</p>
+              )}
+            </div>
             
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required error={!formData.course && error !== null}>
-                  <InputLabel id="course-label">Course</InputLabel>
-                  <Select
-                    labelId="course-label"
-                    id="course"
-                    name="course"
-                    value={formData.course}
-                    label="Course"
-                    onChange={handleSelectChange}
-                    disabled={loading || loadingCourses}
-                  >
-                    {courses.map((course) => (
-                      <MenuItem key={course._id} value={course._id}>
-                        {course.title}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {!formData.course && error !== null && (
-                    <FormHelperText>Course is required</FormHelperText>
-                  )}
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth variant="outlined" sx={{ mt: 3 }} disabled={loadingModules}>
-                  <InputLabel id="module-label">Module {loadingModules ? '(Loading...)' : '(Optional)'}</InputLabel>
-                  <Select
-                    labelId="module-label"
-                    id="module"
-                    name="module"
-                    value={formData.module}
-                    onChange={handleSelectChange}
-                    label={`Module ${loadingModules ? '(Loading...)' : '(Optional)'}`}
-                  >
-                    <MenuItem value="">
-                      <em>None (Optional)</em>
-                    </MenuItem>
-                    {modules.length > 0 ? (
-                      modules.map(module => (
-                        <MenuItem key={module._id} value={module._id}>
-                          {module.title}
-                        </MenuItem>
-                      ))
-                    ) : (
-                      <MenuItem value="" disabled>
-                        {loadingModules ? 'Loading modules...' : 'No modules available'}
-                      </MenuItem>
-                    )}
-                  </Select>
-                  {error && error.includes('modules') && (
-                    <FormHelperText error>
-                      {error}
-                    </FormHelperText>
-                  )}
-                  {!loadingModules && modules.length === 0 && !error && (
-                    <FormHelperText>
-                      No modules found for this course. You can create the assignment without a module.
-                    </FormHelperText>
-                  )}
-                </FormControl>
-              </Grid>
-            </Grid>
+            <div>
+              <label htmlFor="module" className="block text-sm font-medium text-gray-200 mb-1">
+                Module {loadingModules ? '(Loading...)' : '(Optional)'}
+              </label>
+              <select
+                id="module"
+                name="module"
+                value={formData.module}
+                onChange={handleSelectChange}
+                disabled={loadingModules}
+                className={selectClassName}
+              >
+                <option value="" className="bg-[#1e2736] text-white">None (Optional)</option>
+                {modules.map(module => (
+                  <option key={module._id} value={module._id} className="bg-[#1e2736] text-white">
+                    {module.title}
+                  </option>
+                ))}
+              </select>
+              {error && error.includes('modules') && (
+                <p className="mt-1 text-sm text-red-500">{error}</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-200 mb-1">
+                Due Date *
+              </label>
+              <input
+                type="datetime-local"
+                id="dueDate"
+                name="dueDate"
+                value={formatDateForInput(formData.dueDate)}
+                onChange={handleDateChange}
+                disabled={loading}
+                required
+                className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+              />
+              {!formData.dueDate && error !== null && (
+                <p className="mt-1 text-sm text-red-500">Due date is required</p>
+              )}
+            </div>
             
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <DateTimePicker
-                  label="Due Date *"
-                  value={formData.dueDate}
-                  onChange={handleDateChange}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      required: true,
-                      error: !formData.dueDate && error !== null,
-                      helperText: !formData.dueDate && error !== null ? 'Due date is required' : ''
-                    }
-                  }}
-                  disabled={loading}
-                />
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel id="submission-type-label">Submission Type</InputLabel>
-                  <Select
-                    labelId="submission-type-label"
-                    id="submissionType"
-                    name="submissionType"
-                    value={formData.submissionType}
-                    label="Submission Type"
-                    onChange={handleSelectChange}
-                    disabled={loading}
-                  >
-                    <MenuItem value="file">File Upload</MenuItem>
-                    <MenuItem value="text">Text Entry</MenuItem>
-                    <MenuItem value="link">URL Link</MenuItem>
-                    <MenuItem value="multiple">Multiple Types</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-            
-            <Grid container spacing={2} sx={{ mt: 1 }}> 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="totalPoints"
-                  label="Total Points"
-                  name="totalPoints"
-                  type="number"
-                  value={formData.totalPoints}
-                  onChange={handleInputChange}
-                  disabled={loading}
-                  inputProps={{ min: 1 }}
-                />
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="passingPoints"
-                  label="Passing Points"
-                  name="passingPoints"
-                  type="number"
-                  value={formData.passingPoints}
-                  onChange={handleInputChange}
-                  disabled={loading}
-                  inputProps={{ min: 0, max: formData.totalPoints }}
-                  error={formData.passingPoints > formData.totalPoints}
-                  helperText={formData.passingPoints > formData.totalPoints ? 'Cannot be greater than total points' : ''}
-                />
-              </Grid>
-            </Grid>
-            
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel id="status-label">Status</InputLabel>
-                  <Select
-                    labelId="status-label"
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    label="Status"
-                    onChange={handleSelectChange}
-                    disabled={loading}
-                  >
-                    <MenuItem value="draft">Draft</MenuItem>
-                    <MenuItem value="published">Published</MenuItem>
-                  </Select>
-                  <FormHelperText>
-                    {formData.status === 'draft' ? 'Students cannot see draft assignments' : 'Assignment will be visible to students'}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel id="allow-late-label">Allow Late Submissions</InputLabel>
-                  <Select
-                    labelId="allow-late-label"
-                    id="allowLateSubmissions"
-                    name="allowLateSubmissions"
-                    value={formData.allowLateSubmissions ? "true" : "false"}
-                    label="Allow Late Submissions"
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        allowLateSubmissions: e.target.value === "true"
-                      });
-                    }}
-                    disabled={loading}
-                  >
-                    <MenuItem value="true">Yes</MenuItem>
-                    <MenuItem value="false">No</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-            
-            {formData.allowLateSubmissions && (
-              <TextField
-                margin="normal"
-                fullWidth
-                id="latePenalty"
-                label="Late Penalty (%)"
-                name="latePenalty"
+            <div>
+              <label htmlFor="submissionType" className="block text-sm font-medium text-gray-200 mb-1">
+                Submission Type *
+              </label>
+              <select
+                id="submissionType"
+                name="submissionType"
+                value={formData.submissionType}
+                onChange={handleSelectChange}
+                disabled={loading}
+                required
+                className={selectClassName}
+              >
+                <option value="file" className="bg-[#1e2736] text-white">File Upload</option>
+                <option value="text" className="bg-[#1e2736] text-white">Text Entry</option>
+                <option value="link" className="bg-[#1e2736] text-white">URL Link</option>
+                <option value="multiple" className="bg-[#1e2736] text-white">Multiple Types</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="totalPoints" className="block text-sm font-medium text-gray-200 mb-1">
+                Total Points
+              </label>
+              <input
                 type="number"
+                id="totalPoints"
+                name="totalPoints"
+                value={formData.totalPoints}
+                onChange={handleInputChange}
+                disabled={loading}
+                min={1}
+                className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="passingPoints" className="block text-sm font-medium text-gray-200 mb-1">
+                Passing Points
+              </label>
+              <input
+                type="number"
+                id="passingPoints"
+                name="passingPoints"
+                value={formData.passingPoints}
+                onChange={handleInputChange}
+                disabled={loading}
+                min={0}
+                max={formData.totalPoints}
+                className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+              />
+              {formData.passingPoints > formData.totalPoints && (
+                <p className="mt-1 text-sm text-red-500">Cannot be greater than total points</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-200 mb-1">
+                Status
+              </label>
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleSelectChange}
+                disabled={loading}
+                className={selectClassName}
+              >
+                <option value="draft" className="bg-[#1e2736] text-white">Draft</option>
+                <option value="published" className="bg-[#1e2736] text-white">Published</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-400">
+                {formData.status === 'draft' 
+                  ? 'Students cannot see draft assignments' 
+                  : 'Assignment will be visible to students'}
+              </p>
+            </div>
+            
+            <div>
+              <label htmlFor="allowLateSubmissions" className="block text-sm font-medium text-gray-200 mb-1">
+                Allow Late Submissions
+              </label>
+              <select
+                id="allowLateSubmissions"
+                name="allowLateSubmissions"
+                value={formData.allowLateSubmissions ? "true" : "false"}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    allowLateSubmissions: e.target.value === "true"
+                  });
+                }}
+                disabled={loading}
+                className={selectClassName}
+              >
+                <option value="true" className="bg-[#1e2736] text-white">Yes</option>
+                <option value="false" className="bg-[#1e2736] text-white">No</option>
+              </select>
+            </div>
+          </div>
+          
+          {formData.allowLateSubmissions && (
+            <div>
+              <label htmlFor="latePenalty" className="block text-sm font-medium text-gray-200 mb-1">
+                Late Penalty (%)
+              </label>
+              <input
+                type="number"
+                id="latePenalty"
+                name="latePenalty"
                 value={formData.latePenalty}
                 onChange={handleInputChange}
                 disabled={loading}
-                inputProps={{ min: 0, max: 100 }}
-                helperText="Percentage points deducted for late submissions"
+                min={0}
+                max={100}
+                className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
               />
-            )}
+              <p className="mt-1 text-xs text-gray-400">
+                Percentage points deducted for late submissions
+              </p>
+            </div>
+          )}
+          
+          <div className="flex justify-between pt-6">
+            <button
+              type="button"
+              onClick={() => navigate('/assignments')}
+              disabled={loading}
+              className="px-6 py-2 border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
             
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
-              <Button
-                type="button"
-                variant="outlined"
-                onClick={() => navigate('/assignments')}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={loading}
-                startIcon={loading && <CircularProgress size={20} />}
-              >
-                {loading ? 'Creating...' : 'Create Assignment'}
-              </Button>
-            </Box>
-          </Box>
-        </Paper>
-      </Container>
-    </LocalizationProvider>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 flex items-center"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </>
+              ) : 'Create Assignment'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 

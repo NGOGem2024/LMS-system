@@ -1,44 +1,18 @@
 import { useState, useEffect, useContext, FormEvent } from 'react'
 import {
-  Container,
-  Typography,
-  Box,
-  Grid,
-  Paper,
-  Avatar,
-  Button,
-  TextField,
-  Divider,
-  LinearProgress,
-  Alert,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Chip,
-  Skeleton
-} from '@mui/material'
-import {
-  Person as PersonIcon,
-  Email as EmailIcon,
-  VpnKey as PasswordIcon,
-  Save as SaveIcon,
-  School as SchoolIcon,
-  Badge as BadgeIcon
-} from '@mui/icons-material'
+  UserIcon,
+  EnvelopeIcon,
+  KeyIcon,
+  AcademicCapIcon,
+  IdentificationIcon,
+  ArrowPathIcon,
+  PhotoIcon
+} from '@heroicons/react/24/outline'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
 import { 
   PageLoading, 
   ProfileSkeleton, 
-  LoadingButton, 
   ContentPlaceholder 
 } from '../ui/LoadingComponents'
 
@@ -326,405 +300,404 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <div className="container mx-auto px-6 py-8">
         <PageLoading />
-        <Typography variant="h4" sx={{ mb: 4, opacity: 0.7 }}>
+        <h1 className="text-2xl font-bold text-white mb-6 opacity-70">
           Profile
-        </Typography>
+        </h1>
         
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3 }}>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="md:col-span-4">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6">
               <ProfileSkeleton />
-            </Paper>
-          </Grid>
+            </div>
+          </div>
           
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h5" sx={{ mb: 3, opacity: 0.7 }}>
+          <div className="md:col-span-8">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold text-white mb-4 opacity-70">
                 Personal Information
-              </Typography>
-              <Box sx={{ mb: 4 }}>
+              </h2>
+              <div className="mb-6">
                 <ContentPlaceholder lines={5} />
-              </Box>
-            </Paper>
-            
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" sx={{ mb: 3, opacity: 0.7 }}>
-                Stats & Achievements
-              </Typography>
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={6}>
-                  <Card>
-                    <CardContent>
-                      <Skeleton variant="text" height={24} width="60%" />
-                      <Skeleton variant="text" height={40} width="40%" />
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={6}>
-                  <Card>
-                    <CardContent>
-                      <Skeleton variant="text" height={24} width="60%" />
-                      <Skeleton variant="text" height={40} width="40%" />
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-              
-              <Typography variant="h6" sx={{ mb: 2, opacity: 0.7 }}>
-                Achievements
-              </Typography>
-              <List>
-                {[1, 2, 3].map((_, index) => (
-                  <ListItem key={index} sx={{ borderBottom: '1px solid', borderColor: 'divider', py: 2 }}>
-                    <ListItemIcon>
-                      <Skeleton variant="circular" width={40} height={40} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={<Skeleton variant="text" width="70%" />} 
-                      secondary={<Skeleton variant="text" width="90%" />} 
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     )
   }
 
   if (!profileData) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error">
+      <div className="container mx-auto px-6 py-8">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
           Failed to load profile data. Please try again later.
-        </Alert>
-      </Container>
+        </div>
+      </div>
     )
   }
 
-  // Log avatar sources for debugging
-  console.log('Avatar sources:', {
-    preview: avatarPreview,
-    profileData: profileData?.avatar,
-    userProfile: user?.profile?.avatar,
-    baseUrl: window.location.origin
-  });
-
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
+    <div className="container mx-auto px-6 py-8">
+      <h1 className="text-2xl md:text-3xl font-bold text-white mb-8 animate-fade-in">
         My Profile
-      </Typography>
+      </h1>
       
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4 mb-6 animate-slide-in-down">
           {error}
-        </Alert>
+        </div>
       )}
       
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <div className="bg-green-500/10 border border-green-500/20 text-green-500 rounded-lg p-4 mb-6 animate-slide-in-down">
           {success}
-        </Alert>
+        </div>
       )}
       
-      <Grid container spacing={4}>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
         {/* Profile Overview */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center' }}>
-            <Avatar
-              src={getFullImageUrl(avatarPreview || profileData.avatar || user?.profile?.avatar)}
-              sx={{
-                width: 100,
-                height: 100,
-                mx: 'auto',
-                mb: 2,
-                bgcolor: 'primary.main'
-              }}
-            >
-              {profileData.name.charAt(0)}
-            </Avatar>
+        <div className="md:col-span-4">
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 text-center">
+            <div className="relative w-24 h-24 mx-auto mb-4">
+              {/* Animated gradient border with reduced intensity */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/80 via-purple-500/80 to-pink-500/80 animate-gradient p-0.5">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 animate-spin-slow blur-sm opacity-30"></div>
+                <div className="relative w-full h-full rounded-full bg-gradient-to-r from-blue-500/90 to-purple-500/90 flex items-center justify-center overflow-hidden shadow-md shadow-blue-500/10">
+                  {profileData.avatar || avatarPreview ? (
+                    <img 
+                      src={getFullImageUrl(avatarPreview || profileData.avatar || user?.profile?.avatar)} 
+                      alt={profileData.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl">{profileData.name.charAt(0)}</span>
+                  )}
+                </div>
+              </div>
+            </div>
             
-            <Typography variant="h5" gutterBottom>
+            <h2 className="text-xl font-semibold text-white mb-1">
               {profileData.name}
-            </Typography>
+            </h2>
             
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+            <p className="text-gray-400 mb-2">
               {profileData.email}
-            </Typography>
+            </p>
             
-            <Chip 
-              label={profileData.role.toUpperCase()} 
-              color="primary" 
-              size="small" 
-              sx={{ mt: 1 }} 
-            />
+            <span className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-3 py-1 rounded-full mt-1 shadow-lg shadow-blue-500/20">
+              {profileData.role.toUpperCase()}
+            </span>
             
             {profileData.institution && (
-              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <SchoolIcon fontSize="small" sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  {profileData.institution}
-                </Typography>
-              </Box>
+              <div className="mt-4 flex items-center justify-center text-gray-300">
+                <AcademicCapIcon className="h-4 w-4 mr-2" />
+                <span className="text-sm">{profileData.institution}</span>
+              </div>
             )}
             
-            <Divider sx={{ my: 2 }} />
+            <div className="border-t border-white/10 my-4" />
             
-            <List dense>
-              <ListItem>
-                <ListItemText 
-                  primary="Enrolled Courses" 
-                  secondary={profileData.enrolledCourses} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText 
-                  primary="Completed Courses" 
-                  secondary={profileData.completedCourses} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText 
-                  primary="Achievements" 
-                  secondary={profileData.achievements.length} 
-                />
-              </ListItem>
-            </List>
+            <ul className="text-left space-y-4">
+              <li className="flex justify-between items-center">
+                <span className="text-gray-400">Enrolled Courses</span>
+                <span className="text-white font-medium">{profileData.enrolledCourses}</span>
+              </li>
+              <li className="flex justify-between items-center">
+                <span className="text-gray-400">Completed Courses</span>
+                <span className="text-white font-medium">{profileData.completedCourses}</span>
+              </li>
+              <li className="flex justify-between items-center">
+                <span className="text-gray-400">Achievements</span>
+                <span className="text-white font-medium">{profileData.achievements.length}</span>
+              </li>
+            </ul>
             
-            <Button
-              variant="outlined"
-              color="primary"
+            <button
               onClick={() => setPasswordDialogOpen(true)}
-              startIcon={<PasswordIcon />}
-              sx={{ mt: 2 }}
+              className="mt-6 inline-flex items-center px-4 py-2 border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors w-full justify-center cursor-pointer"
             >
+              <KeyIcon className="h-4 w-4 mr-2" />
               Change Password
-            </Button>
-          </Paper>
+            </button>
+          </div>
           
           {/* Achievements */}
           {profileData.achievements.length > 0 && (
-            <Paper sx={{ p: 3, mt: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <BadgeIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 mt-6">
+              <div className="flex items-center mb-6">
+                <IdentificationIcon className="h-5 w-5 text-blue-500 mr-2" />
+                <h3 className="text-lg font-semibold text-white">
                   Achievements
-                </Typography>
-              </Box>
+                </h3>
+              </div>
               
-              <List dense>
+              <ul className="space-y-4">
                 {profileData.achievements.map((achievement) => (
-                  <ListItem key={achievement._id}>
-                    <ListItemIcon>
-                      {/* Use a default icon if the achievement icon is not available */}
-                      <BadgeIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={achievement.title} 
-                      secondary={achievement.description} 
-                    />
-                  </ListItem>
+                  <li key={achievement._id} className="flex items-start">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center mr-3">
+                      <IdentificationIcon className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-white">{achievement.title}</div>
+                      <div className="text-sm text-gray-400">{achievement.description}</div>
+                    </div>
+                  </li>
                 ))}
-              </List>
-            </Paper>
+              </ul>
+            </div>
           )}
-        </Grid>
+        </div>
         
         {/* Profile Edit Form */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <PersonIcon color="primary" sx={{ mr: 1 }} />
-              <Typography variant="h6">
+        <div className="md:col-span-8">
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6">
+            <div className="flex items-center mb-6">
+              <UserIcon className="h-5 w-5 text-blue-500 mr-2" />
+              <h2 className="text-xl font-semibold text-white">
                 Edit Profile
-              </Typography>
-            </Box>
+              </h2>
+            </div>
             
-            <Box component="form" onSubmit={handleProfileUpdate} noValidate>
-              <Box sx={{ mb: 3, textAlign: 'center' }}>
+            <form onSubmit={handleProfileUpdate} className="space-y-6">
+              <div className="text-center">
                 <input
                   accept="image/*"
-                  style={{ display: 'none' }}
+                  className="hidden"
                   id="avatar-upload"
                   type="file"
                   onChange={handleAvatarChange}
                 />
-                <label htmlFor="avatar-upload">
-                  <Avatar
-                    src={getFullImageUrl(avatarPreview || profileData.avatar || user?.profile?.avatar)}
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      mx: 'auto',
-                      mb: 1,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        opacity: 0.8,
-                      },
-                    }}
-                  >
-                    {profileData.name.charAt(0)}
-                  </Avatar>
-                  <Button
-                    component="span"
-                    variant="outlined"
-                    size="small"
-                  >
-                    Upload Photo
-                  </Button>
+                <label htmlFor="avatar-upload" className="cursor-pointer">
+                  <div className="relative w-24 h-24 mx-auto mb-3">
+                    {/* Animated gradient border with reduced intensity */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/80 via-purple-500/80 to-pink-500/80 animate-gradient p-0.5">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 animate-spin-slow blur-sm opacity-30"></div>
+                      <div className="relative w-full h-full rounded-full bg-gradient-to-r from-blue-500/90 to-purple-500/90 flex items-center justify-center overflow-hidden group shadow-md shadow-blue-500/10">
+                        {avatarPreview || profileData.avatar ? (
+                          <>
+                            <img 
+                              src={getFullImageUrl(avatarPreview || profileData.avatar)} 
+                              alt={profileData.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <PhotoIcon className="h-6 w-6" />
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-2xl">{profileData.name.charAt(0)}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    Click to upload photo
+                  </span>
                 </label>
                 {formErrors.avatar && (
-                  <Typography color="error" variant="caption" display="block" sx={{ mt: 1 }}>
+                  <p className="text-red-500 text-xs mt-1">
                     {formErrors.avatar}
-                  </Typography>
+                  </p>
                 )}
-              </Box>
+              </div>
               
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    required
-                    fullWidth
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-200 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
                     id="name"
-                    label="Full Name"
                     name="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    error={!!formErrors.name}
-                    helperText={formErrors.name}
+                    className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                    required
                   />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    id="email"
-                    label="Email Address"
-                    name="email"
-                    value={profileData.email}
-                    disabled
-                    InputProps={{
-                      startAdornment: (
-                        <EmailIcon color="action" sx={{ mr: 1 }} />
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
+                  {formErrors.name && (
+                    <p className="mt-1 text-sm text-red-500">{formErrors.name}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">
+                    Email Address
+                  </label>
+                  <div className="flex items-center px-3 py-2 bg-white/5 border border-white/10 rounded-md">
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-2" />
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={profileData.email}
+                      disabled
+                      className="block w-full bg-transparent border-none focus:outline-none text-gray-400"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="bio" className="block text-sm font-medium text-gray-200 mb-1">
+                    Bio
+                  </label>
+                  <textarea
                     id="bio"
-                    label="Bio"
                     name="bio"
-                    multiline
                     rows={4}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    error={!!formErrors.bio}
-                    helperText={formErrors.bio}
                     placeholder="Tell us about yourself..."
+                    className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
                   />
-                </Grid>
-              </Grid>
+                  {formErrors.bio && (
+                    <p className="mt-1 text-sm text-red-500">{formErrors.bio}</p>
+                  )}
+                </div>
+              </div>
               
-              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                <LoadingButton loading={isSaving}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </LoadingButton>
-              </Box>
-            </Box>
-          </Paper>
+              <div className="flex justify-end pt-6">
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>
+                      <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />
+                      Saving...
+                    </>
+                  ) : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
           
           {/* Learning Progress */}
-          <Paper sx={{ p: 3, mt: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <SchoolIcon color="primary" sx={{ mr: 1 }} />
-              <Typography variant="h6">
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 mt-6">
+            <div className="flex items-center mb-4">
+              <AcademicCapIcon className="h-5 w-5 text-blue-500 mr-2" />
+              <h2 className="text-xl font-semibold text-white">
                 Learning Progress
-              </Typography>
-            </Box>
+              </h2>
+            </div>
             
             {profileData.enrolledCourses > 0 ? (
-              <Typography variant="body2" paragraph>
-                You have completed {profileData.completedCourses} out of {profileData.enrolledCourses} enrolled courses.
-              </Typography>
+              <div className="text-gray-300">
+                <p className="mb-4">
+                  You have completed {profileData.completedCourses} out of {profileData.enrolledCourses} enrolled courses.
+                </p>
+                <div className="w-full bg-white/5 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                    style={{ 
+                      width: `${(profileData.completedCourses / profileData.enrolledCourses) * 100}%` 
+                    }}
+                  />
+                </div>
+              </div>
             ) : (
-              <Typography variant="body2" paragraph>
+              <p className="text-gray-400">
                 You are not enrolled in any courses yet.
-              </Typography>
+              </p>
             )}
-            
-            {/* We could add more detailed progress information here */}
-          </Paper>
-        </Grid>
-      </Grid>
+          </div>
+        </div>
+      </div>
       
       {/* Password Change Dialog */}
-      <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)}>
-        <DialogTitle>Change Password</DialogTitle>
-        <Box component="form" onSubmit={handlePasswordUpdate} noValidate>
-          <DialogContent>
-            <DialogContentText>
-              To change your password, please enter your current password and then your new password.
-            </DialogContentText>
-            <TextField
-              margin="dense"
-              id="current-password"
-              label="Current Password"
-              type="password"
-              fullWidth
-              required
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              error={!!formErrors.currentPassword}
-              helperText={formErrors.currentPassword}
-            />
-            <TextField
-              margin="dense"
-              id="new-password"
-              label="New Password"
-              type="password"
-              fullWidth
-              required
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              error={!!formErrors.newPassword}
-              helperText={formErrors.newPassword}
-            />
-            <TextField
-              margin="dense"
-              id="confirm-password"
-              label="Confirm New Password"
-              type="password"
-              fullWidth
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              error={!!formErrors.confirmPassword}
-              helperText={formErrors.confirmPassword}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setPasswordDialogOpen(false)} disabled={isChangingPassword}>Cancel</Button>
-            <LoadingButton loading={isChangingPassword}>
-              <Button type="submit" variant="contained" disabled={isChangingPassword}>
-                {isChangingPassword ? 'Updating...' : 'Update Password'}
-              </Button>
-            </LoadingButton>
-          </DialogActions>
-        </Box>
-      </Dialog>
-    </Container>
+      {passwordDialogOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e2736] rounded-lg shadow-lg max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">Change Password</h2>
+              
+              <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                <p className="text-gray-400 mb-4">
+                  To change your password, please enter your current password and then your new password.
+                </p>
+                
+                <div>
+                  <label htmlFor="current-password" className="block text-sm font-medium text-gray-200 mb-1">
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    id="current-password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                    required
+                  />
+                  {formErrors.currentPassword && (
+                    <p className="mt-1 text-sm text-red-500">{formErrors.currentPassword}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label htmlFor="new-password" className="block text-sm font-medium text-gray-200 mb-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    id="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                    required
+                  />
+                  {formErrors.newPassword && (
+                    <p className="mt-1 text-sm text-red-500">{formErrors.newPassword}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-200 mb-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    id="confirm-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="block w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                    required
+                  />
+                  {formErrors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-500">{formErrors.confirmPassword}</p>
+                  )}
+                </div>
+                
+                <div className="flex justify-end space-x-3 pt-6">
+                  <button
+                    type="button"
+                    onClick={() => setPasswordDialogOpen(false)}
+                    disabled={isChangingPassword}
+                    className="px-4 py-2 border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isChangingPassword}
+                    className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 flex items-center cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {isChangingPassword ? (
+                      <>
+                        <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />
+                        Updating...
+                      </>
+                    ) : 'Update Password'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

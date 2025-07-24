@@ -1,44 +1,22 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
-import AuthContext from '../../context/AuthContext'
 import {
-  Container,
-  Typography,
-  Box,
-  Paper,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Chip,
-  Alert,
-  Tabs,
-  Tab,
-  Divider,
-  TextField,
-  InputAdornment,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-  LinearProgress,
-  Skeleton
-} from '@mui/material'
-import {
-  Assignment as AssignmentIcon,
-  Search as SearchIcon,
-  CheckCircle as CompletedIcon,
-  Schedule as PendingIcon,
-  Warning as OverdueIcon,
-  ErrorOutline as ErrorIcon
-} from '@mui/icons-material'
+  ClipboardDocumentIcon,
+  MagnifyingGlassIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  ExclamationCircleIcon,
+  PlusIcon,
+  CalendarIcon,
+  AcademicCapIcon
+} from '@heroicons/react/24/outline'
 import axios from 'axios'
+import AuthContext from '../../context/AuthContext'
 import { 
   PageLoading, 
   AssignmentListSkeleton,
-  TableSkeleton
+  TableSkeleton 
 } from '../ui/LoadingComponents'
 
 interface Assignment {
@@ -199,11 +177,11 @@ const Assignments = () => {
     setFilteredAssignments(filtered)
   }, [searchTerm, courseFilter, tabValue, assignments])
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setTabValue(newValue)
   }
 
-  const handleCourseFilterChange = (event: SelectChangeEvent) => {
+  const handleCourseFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setCourseFilter(event.target.value)
   }
 
@@ -212,283 +190,238 @@ const Assignments = () => {
       case 'submitted':
       case 'graded':
       case 'passed':
-        return <Chip 
-          icon={<CompletedIcon />} 
-          label={status === 'passed' ? 'Passed' : (status === 'graded' ? 'Graded' : 'Submitted')} 
-          color="success" 
-          size="small" 
-        />
+        return (
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-medium">
+            <CheckCircleIcon className="h-3.5 w-3.5 mr-1.5" />
+            {status === 'passed' ? 'Passed' : (status === 'graded' ? 'Graded' : 'Submitted')}
+          </div>
+        )
       case 'failed':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Failed" 
-          color="error" 
-          size="small" 
-        />
+        return (
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-red-500/10 text-red-500 text-xs font-medium">
+            <ExclamationCircleIcon className="h-3.5 w-3.5 mr-1.5" />
+            Failed
+          </div>
+        )
       case 'resubmit':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Needs Revision" 
-          color="warning" 
-          size="small" 
-        />
       case 'late':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Late" 
-          color="warning" 
-          size="small" 
-        />
+        return (
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-500 text-xs font-medium">
+            <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1.5" />
+            {status === 'resubmit' ? 'Needs Revision' : 'Late'}
+          </div>
+        )
       case 'overdue':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Overdue" 
-          color="error" 
-          size="small" 
-        />
       case 'missed':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Missed" 
-          color="error" 
-          size="small" 
-        />
+        return (
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-red-500/10 text-red-500 text-xs font-medium">
+            <ExclamationTriangleIcon className="h-3.5 w-3.5 mr-1.5" />
+            {status === 'overdue' ? 'Overdue' : 'Missed'}
+          </div>
+        )
       case 'pending':
       default:
-        return <Chip 
-          icon={<PendingIcon />} 
-          label="Pending" 
-          color="primary" 
-          size="small" 
-        />
+        return (
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-xs font-medium">
+            <ClockIcon className="h-3.5 w-3.5 mr-1.5" />
+            Pending
+          </div>
+        )
     }
   }
 
   if (authError) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 3 }}>
-          <ErrorIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
-          <Typography variant="h5" gutterBottom>Authentication Error</Typography>
-          <Typography variant="body1" align="center" paragraph>
-            Your session has expired or you are not authorized to access this page.
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary"
-            onClick={handleRelogin}
-            sx={{ mt: 2 }}
-          >
-            Log In Again
-          </Button>
-        </Box>
-      </Container>
+      <div className="flex flex-col items-center justify-center min-h-[80vh]">
+        <ExclamationCircleIcon className="h-16 w-16 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">Authentication Error</h2>
+        <p className="text-gray-400 text-center mb-4">
+          Your session has expired or you are not authorized to access this page.
+        </p>
+        <button 
+          onClick={handleRelogin}
+          className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 transition-all"
+        >
+          Log In Again
+        </button>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <div className="container mx-auto px-6 py-8">
         <PageLoading />
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-          <AssignmentIcon sx={{ mr: 1, opacity: 0.5 }} fontSize="large" color="primary" />
-          <Typography variant="h4" component="h1" sx={{ opacity: 0.5 }}>
+        <div className="flex items-center mb-6">
+          <ClipboardDocumentIcon className="h-8 w-8 text-white opacity-50 mr-3" />
+          <h1 className="text-2xl md:text-3xl font-bold text-white opacity-50">
             Assignments
-          </Typography>
-        </Box>
-        
-        <Paper sx={{ mb: 4 }}>
-          <Tabs
-            value={0}
-            indicatorColor="primary"
-            textColor="primary"
-            variant="fullWidth"
-          >
-            <Tab label="All" />
-            <Tab label="Pending" />
-            <Tab label="Completed" />
-            <Tab label="Overdue" />
-          </Tabs>
-        </Paper>
-        
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <Box sx={{ flex: 1 }}>
-            <Skeleton variant="rectangular" height={56} width="100%" animation="wave" />
-          </Box>
-          <Box sx={{ width: 200 }}>
-            <Skeleton variant="rectangular" height={56} width="100%" animation="wave" />
-          </Box>
-        </Box>
-        
+          </h1>
+        </div>
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg mb-6">
+          <div className="flex">
+            {['All', 'Pending', 'Completed', 'Overdue'].map((tab, index) => (
+              <div key={tab} className={`flex-1 text-center py-3 ${index === 0 ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400'}`}>
+                {tab}
+              </div>
+            ))}
+          </div>
+        </div>
         <TableSkeleton rows={5} cols={3} />
-      </Container>
+      </div>
     )
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <AssignmentIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
-          <Typography variant="h4" component="h1">
+    <div className="container mx-auto px-6 py-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <ClipboardDocumentIcon className="h-8 w-8 text-blue-500" />
+          <h1 className="text-2xl md:text-3xl font-bold text-white">
             Assignments
-          </Typography>
-        </Box>
+          </h1>
+        </div>
         
-        {/* Create Assignment button - only visible to instructors and admins */}
         {user && (user.role === 'instructor' || user.role === 'admin') && (
-          <Button
-            component={RouterLink}
+          <RouterLink
             to="/assignments/create"
-            variant="contained"
-            startIcon={<AssignmentIcon />}
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 transition-all"
           >
+            <PlusIcon className="h-5 w-5 mr-2" />
             Create Assignment
-          </Button>
+          </RouterLink>
         )}
-      </Box>
-      
+      </div>
+
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4 mb-6">
           {error}
-        </Alert>
+        </div>
       )}
-      
-      <Paper sx={{ mb: 4 }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="fullWidth"
-        >
-          <Tab label="All" />
-          <Tab label="Pending" />
-          <Tab label="Completed" />
-          <Tab label="Overdue" />
-        </Tabs>
-      </Paper>
-      
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={8}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Search assignments"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <FormControl fullWidth>
-            <InputLabel id="course-filter-label">Filter by Course</InputLabel>
-            <Select
-              labelId="course-filter-label"
-              id="course-filter"
-              value={courseFilter}
-              label="Filter by Course"
-              onChange={handleCourseFilterChange}
+
+      {/* Tabs */}
+      <div className="bg-white/5 backdrop-blur-sm rounded-lg mb-6">
+        <div className="flex flex-wrap">
+          {['All', 'Pending', 'Completed', 'Overdue'].map((tab, index) => (
+            <button 
+              key={tab}
+              onClick={() => handleTabChange(index)}
+              className={`
+                flex-1 min-w-[120px] py-3 px-4 text-center transition-all
+                ${tabValue === index 
+                  ? 'text-blue-500 border-b-2 border-blue-500 font-medium' 
+                  : 'text-gray-400 hover:text-gray-300'
+                }
+              `}
             >
-              <MenuItem value="all">All Courses</MenuItem>
-              {courses.map((course) => (
-                <MenuItem key={course._id} value={course._id}>
-                  {course.title}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-      </Grid>
-      
-      {filteredAssignments.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 5 }}>
-          <Typography variant="h6" color="text.secondary">
-            No assignments found matching your criteria.
-          </Typography>
-        </Box>
-      ) : (
-        <Grid container spacing={3}>
-          {filteredAssignments.map((assignment) => (
-            <Grid item key={assignment._id} xs={12} sm={6} md={4}>
-              <Card 
-                sx={{ 
-                  height: '100%', 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s ease-in-out',
-                  '&:hover': {
-                    transform: 'scale(1.02)',
-                  },
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Typography gutterBottom variant="h6" component="div">
-                      {assignment.title}
-                    </Typography>
-                    {getStatusChip(assignment.submissionStatus || 'pending')}
-                  </Box>
-                  
-                  <Typography variant="body2" color="text.secondary" sx={{
-                    mb: 2,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                  }}>
-                    {assignment.description}
-                  </Typography>
-                  
-                  <Divider sx={{ my: 1 }} />
-                  
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="body2">
-                      Course: {assignment.course.title}
-                    </Typography>
-                    <Typography variant="body2">
-                      Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="body2">
-                      Points: {assignment.totalPoints}
-                    </Typography>
-                  </Box>
-                </CardContent>
-                <CardActions>
-                  <Button 
-                    size="small" 
-                    component={RouterLink} 
-                    to={`/assignments/${assignment._id}`}
-                    variant="outlined"
-                    fullWidth
-                  >
-                    View Details
-                  </Button>
-                  {assignment.submissionStatus === 'pending' && user?.role === 'student' && (
-                    <Button 
-                      size="small" 
-                      component={RouterLink} 
-                      to={`/assignments/${assignment._id}/submit`}
-                      variant="contained"
-                      fullWidth
-                    >
-                      Submit 
-                    </Button>
-                  )}
-                </CardActions>
-              </Card>
-            </Grid>
+              {tab}
+            </button>
           ))}
-        </Grid>
+        </div>
+      </div>
+
+      {/* Search and Filter */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="md:col-span-2">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search assignments by title or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2.5 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <select
+            value={courseFilter}
+            onChange={handleCourseFilterChange}
+            className="block w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+          >
+            <option value="all">All Courses</option>
+            {courses.map((course) => (
+              <option key={course._id} value={course._id} className="bg-[#1e2736] text-white">
+                {course.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Assignments Grid */}
+      {filteredAssignments.length === 0 ? (
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-8 text-center">
+          <ClipboardDocumentIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-400 text-lg mb-2">No assignments found</p>
+          <p className="text-gray-500 text-sm">Try adjusting your search or filter criteria</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAssignments.map((assignment) => (
+            <div 
+              key={assignment._id} 
+              className="group bg-white/5 backdrop-blur-sm rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-300"
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  {getStatusChip(assignment.submissionStatus || 'pending')}
+                  <div className="flex items-center text-gray-400 text-sm">
+                    <CalendarIcon className="h-4 w-4 mr-1.5" />
+                    {new Date(assignment.dueDate).toLocaleDateString(undefined, { 
+                      month: 'short', 
+                      day: 'numeric' 
+                    })}
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">
+                  {assignment.title}
+                </h3>
+                
+                <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                  {assignment.description}
+                </p>
+
+                <div className="flex items-center text-sm text-gray-400 mb-4">
+                  <AcademicCapIcon className="h-4 w-4 mr-1.5" />
+                  {assignment.course.title}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-white">
+                    {assignment.totalPoints} Points
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <RouterLink 
+                      to={`/assignments/${assignment._id}`}
+                      className="px-3 py-1.5 text-sm border border-white/10 text-white rounded-md hover:bg-white/5 transition-colors"
+                    >
+                      View Details
+                    </RouterLink>
+                    
+                    {assignment.submissionStatus === 'pending' && user?.role === 'student' && (
+                      <RouterLink 
+                        to={`/assignments/${assignment._id}/submit`}
+                        className="px-3 py-1.5 text-sm bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 transition-all"
+                      >
+                        Submit
+                      </RouterLink>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
-    </Container>
+    </div>
   )
 }
 

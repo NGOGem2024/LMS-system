@@ -1,5 +1,4 @@
 const UserProgress = require('../models/UserProgress');
-const Course = require('../models/Course');
 const Assignment = require('../models/Assignment');
 const AssignmentSubmission = require('../models/AssignmentSubmission');
 

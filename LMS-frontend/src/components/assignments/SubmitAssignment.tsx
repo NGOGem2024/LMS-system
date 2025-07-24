@@ -2,28 +2,10 @@ import { useState, useEffect, FormEvent, useContext } from 'react'
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom'
 import AuthContext from '../../context/AuthContext'
 import {
-  Container,
-  Typography,
-  Box,
-  Paper,
-  Grid,
-  Button,
-  TextField,
-  LinearProgress,
-  Alert,
-  Divider,
-  FormControl,
-  FormHelperText,
-  InputLabel,
-  Select,
-  MenuItem
-} from '@mui/material'
-import {
-  Assignment as AssignmentIcon,
-  Upload as UploadIcon,
-  Save as SaveIcon,
-  ArrowBack as BackIcon
-} from '@mui/icons-material'
+  ClipboardDocumentIcon,
+  ArrowUpTrayIcon,
+  ArrowLeftIcon
+} from '@heroicons/react/24/outline'
 import axios from 'axios'
 
 interface Assignment {
@@ -161,192 +143,198 @@ const SubmitAssignment = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <LinearProgress />
-      </Container>
+      <div className="container mx-auto px-4 py-8">
+        <div className="w-full h-1 bg-primary-main animate-pulse"></div>
+      </div>
     )
   }
 
   if (!assignment) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error">
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-error-light text-error-dark border border-error-main rounded-md p-4">
           Assignment not found or has been removed.
-        </Alert>
-      </Container>
+        </div>
+      </div>
     )
   }
 
   const isPastDue = new Date(assignment.dueDate) < new Date()
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Button
-          component={RouterLink}
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center mb-4">
+        <RouterLink
           to={`/assignments/${assignment._id}`}
-          startIcon={<BackIcon />}
-          sx={{ mr: 2 }}
+          className="flex items-center text-primary-main hover:text-primary-dark"
         >
-          Back to Assignment
-        </Button>
-      </Box>
+          <ArrowLeftIcon className="h-5 w-5 mr-1" />
+          <span>Back to Assignment</span>
+        </RouterLink>
+      </div>
       
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <AssignmentIcon color="primary" sx={{ fontSize: 30, mr: 2 }} />
-          <Typography variant="h5" component="h1">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+        <div className="flex items-center mb-4">
+          <ClipboardDocumentIcon className="h-8 w-8 text-primary-main mr-3" />
+          <h1 className="text-xl font-bold">
             Submit: {assignment.title}
-          </Typography>
-        </Box>
+          </h1>
+        </div>
         
-        <Divider sx={{ my: 2 }} />
+        <hr className="my-4 border-gray-200 dark:border-gray-700" />
         
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="font-medium">
               Course: {assignment.course.title}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1">
+            </p>
+          </div>
+          <div>
+            <p className="font-medium">
               Due Date: {new Date(assignment.dueDate).toLocaleDateString()}
               {isPastDue && (
-                <Typography component="span" color="error" sx={{ ml: 1 }}>
+                <span className="ml-2 text-error-main">
                   (Past Due)
-                </Typography>
+                </span>
               )}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
+            </p>
+          </div>
+        </div>
+      </div>
       
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <div className="bg-error-light text-error-dark border border-error-main rounded-md p-4 mb-6">
           {error}
-        </Alert>
+        </div>
       )}
       
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <div className="bg-success-light text-success-dark border border-success-main rounded-md p-4 mb-6">
           {success}
-        </Alert>
+        </div>
       )}
       
       {isPastDue && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <div className="bg-warning-light text-warning-dark border border-warning-main rounded-md p-4 mb-6">
           This assignment is past due. Your submission may be marked as late.
-        </Alert>
+        </div>
       )}
       
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">
           Assignment Instructions
-        </Typography>
-        <Typography variant="body1" paragraph>
+        </h2>
+        <p className="mb-6">
           {assignment.instructions}
-        </Typography>
+        </p>
         
-        <Divider sx={{ my: 3 }} />
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
         
-        <Box component="form" onSubmit={handleSubmit} noValidate>
-          <Typography variant="h6" gutterBottom>
+        <form onSubmit={handleSubmit}>
+          <h2 className="text-xl font-semibold mb-4">
             Your Submission
-          </Typography>
+          </h2>
           
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel id="submission-type-label">Submission Type</InputLabel>
-            <Select
-              labelId="submission-type-label"
+          <div className="mb-6">
+            <label htmlFor="submission-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Submission Type
+            </label>
+            <select
               id="submission-type"
               value={submissionType}
-              label="Submission Type"
               onChange={(e) => setSubmissionType(e.target.value as 'text' | 'file')}
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-main focus:border-primary-main dark:bg-gray-700 dark:text-white"
             >
-              <MenuItem value="text">Text Submission</MenuItem>
-              <MenuItem value="file">File Upload</MenuItem>
-            </Select>
-          </FormControl>
+              <option value="text">Text Submission</option>
+              <option value="file">File Upload</option>
+            </select>
+          </div>
           
           {submissionType === 'text' ? (
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="text-submission"
-              label="Your Answer"
-              name="textSubmission"
-              multiline
-              rows={10}
-              value={textSubmission}
-              onChange={(e) => setTextSubmission(e.target.value)}
-              error={!!formErrors.submission}
-              helperText={formErrors.submission}
-              disabled={submitting}
-            />
-          ) : (
-            <Box sx={{ mb: 3 }}>
-              <input
-                accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                style={{ display: 'none' }}
-                id="file-upload"
-                type="file"
-                onChange={handleFileChange}
-                disabled={submitting}
-              />
-              <label htmlFor="file-upload">
-                <Button
-                  variant="outlined"
-                  component="span"
-                  startIcon={<UploadIcon />}
-                  disabled={submitting}
-                >
-                  Upload File
-                </Button>
+            <div className="mb-6">
+              <label htmlFor="text-submission" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Your Answer
               </label>
-              {fileSubmission && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Selected file: {fileSubmission.name}
-                </Typography>
-              )}
+              <textarea
+                id="text-submission"
+                name="textSubmission"
+                rows={10}
+                value={textSubmission}
+                onChange={(e) => setTextSubmission(e.target.value)}
+                disabled={submitting}
+                className={`block w-full px-3 py-2 border ${
+                  formErrors.submission ? 'border-error-main' : 'border-gray-300 dark:border-gray-600'
+                } rounded-md shadow-sm focus:outline-none focus:ring-primary-main focus:border-primary-main dark:bg-gray-700 dark:text-white`}
+                required
+              ></textarea>
               {formErrors.submission && (
-                <FormHelperText error>{formErrors.submission}</FormHelperText>
+                <p className="mt-1 text-sm text-error-main">{formErrors.submission}</p>
               )}
-              <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                Accepted file types: PDF, Word documents, text files
-              </Typography>
-            </Box>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <div className="flex flex-col items-start">
+                <label htmlFor="file-upload" className="mb-2">
+                  <span className="inline-flex items-center px-4 py-2 border border-primary-main text-primary-main rounded hover:bg-primary-light/10 cursor-pointer">
+                    <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
+                    Upload File
+                  </span>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    onChange={handleFileChange}
+                    disabled={submitting}
+                    className="hidden"
+                    accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  />
+                </label>
+                {fileSubmission && (
+                  <p className="text-sm mt-1">
+                    Selected file: {fileSubmission.name}
+                  </p>
+                )}
+                {formErrors.submission && (
+                  <p className="mt-1 text-sm text-error-main">{formErrors.submission}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Accepted file types: PDF, Word documents, text files
+                </p>
+              </div>
+            </div>
           )}
           
-          <TextField
-            margin="normal"
-            fullWidth
-            id="comments"
-            label="Additional Comments (Optional)"
-            name="comments"
-            multiline
-            rows={4}
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-            error={!!formErrors.comments}
-            helperText={formErrors.comments}
-            disabled={submitting}
-          />
-          
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              type="submit"
-              variant="contained"
-              startIcon={<SaveIcon />}
+          <div className="mb-6">
+            <label htmlFor="comments" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Additional Comments (Optional)
+            </label>
+            <textarea
+              id="comments"
+              name="comments"
+              rows={4}
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
               disabled={submitting}
-              size="large"
+              className={`block w-full px-3 py-2 border ${
+                formErrors.comments ? 'border-error-main' : 'border-gray-300 dark:border-gray-600'
+              } rounded-md shadow-sm focus:outline-none focus:ring-primary-main focus:border-primary-main dark:bg-gray-700 dark:text-white`}
+            ></textarea>
+            {formErrors.comments && (
+              <p className="mt-1 text-sm text-error-main">{formErrors.comments}</p>
+            )}
+          </div>
+          
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center px-6 py-3 bg-primary-main text-white rounded hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-main disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Submitting...' : 'Submit Assignment'}
-            </Button>
-          </Box>
-        </Box>
-      </Paper>
-    </Container>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
 

@@ -1,35 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
-  Container,
-  Typography,
-  Box,
-  Grid,
-  Paper,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  LinearProgress,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
-} from '@mui/material'
-import {
-  PeopleAlt as UsersIcon,
-  School as CoursesIcon,
-  Assignment as AssignmentsIcon,
-  Business as InstitutionsIcon,
-  Dashboard as DashboardIcon
-} from '@mui/icons-material'
+  ChartBarIcon,
+  UserGroupIcon,
+  AcademicCapIcon,
+  ClipboardDocumentIcon,
+  BuildingOfficeIcon
+} from '@heroicons/react/24/outline'
 import axios from 'axios'
 
 interface AdminStats {
@@ -86,270 +63,216 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <LinearProgress />
-      </Container>
+      <div className="container mx-auto px-4 py-8">
+        <div className="w-full h-1 bg-primary-main animate-pulse"></div>
+      </div>
     )
   }
 
   if (!stats) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error">
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-error-light text-error-dark border border-error-main rounded-md p-4">
           Failed to load admin statistics. Please try again later.
-        </Alert>
-      </Container>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <DashboardIcon sx={{ mr: 1 }} fontSize="large" color="primary" />
-        <Typography variant="h4" component="h1">
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center mb-6">
+        <ChartBarIcon className="h-8 w-8 text-primary-main mr-2" />
+        <h1 className="text-2xl md:text-3xl font-bold">
           Admin Dashboard
-        </Typography>
-      </Box>
+        </h1>
+      </div>
       
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <div className="bg-error-light text-error-dark border border-error-main rounded-md p-4 mb-6">
           {error}
-        </Alert>
+        </div>
       )}
       
       {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
-              height: '100%',
-              transition: 'transform 0.2s ease-in-out',
-              '&:hover': {
-                transform: 'scale(1.03)',
-              },
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <UsersIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div">
-                  Users
-                </Typography>
-              </Box>
-              <Typography variant="h3" component="div" sx={{ textAlign: 'center', my: 2 }}>
-                {stats.totalUsers}
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button 
-                size="small" 
-                component={RouterLink} 
-                to="/admin/users"
-                fullWidth
-              >
-                Manage Users
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transform hover:scale-[1.03] transition-transform duration-300">
+          <div className="p-4">
+            <div className="flex items-center mb-3">
+              <UserGroupIcon className="h-6 w-6 text-primary-main mr-2" />
+              <h2 className="text-lg font-semibold">
+                Users
+              </h2>
+            </div>
+            <p className="text-3xl font-bold text-center my-4">
+              {stats.totalUsers}
+            </p>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 border-t border-gray-200 dark:border-gray-600">
+            <RouterLink 
+              to="/admin/users"
+              className="block w-full text-center text-primary-main hover:text-primary-dark"
+            >
+              Manage Users
+            </RouterLink>
+          </div>
+        </div>
         
-        <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
-              height: '100%',
-              transition: 'transform 0.2s ease-in-out',
-              '&:hover': {
-                transform: 'scale(1.03)',
-              },
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <CoursesIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div">
-                  Courses
-                </Typography>
-              </Box>
-              <Typography variant="h3" component="div" sx={{ textAlign: 'center', my: 2 }}>
-                {stats.totalCourses}
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button 
-                size="small" 
-                component={RouterLink} 
-                to="/admin/courses"
-                fullWidth
-              >
-                Manage Courses
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transform hover:scale-[1.03] transition-transform duration-300">
+          <div className="p-4">
+            <div className="flex items-center mb-3">
+              <AcademicCapIcon className="h-6 w-6 text-primary-main mr-2" />
+              <h2 className="text-lg font-semibold">
+                Courses
+              </h2>
+            </div>
+            <p className="text-3xl font-bold text-center my-4">
+              {stats.totalCourses}
+            </p>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 border-t border-gray-200 dark:border-gray-600">
+            <RouterLink 
+              to="/admin/courses"
+              className="block w-full text-center text-primary-main hover:text-primary-dark"
+            >
+              Manage Courses
+            </RouterLink>
+          </div>
+        </div>
         
-        <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
-              height: '100%',
-              transition: 'transform 0.2s ease-in-out',
-              '&:hover': {
-                transform: 'scale(1.03)',
-              },
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AssignmentsIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div">
-                  Assignments
-                </Typography>
-              </Box>
-              <Typography variant="h3" component="div" sx={{ textAlign: 'center', my: 2 }}>
-                {stats.totalAssignments}
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button 
-                size="small" 
-                component={RouterLink} 
-                to="/admin/assignments"
-                fullWidth
-              >
-                Manage Assignments
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transform hover:scale-[1.03] transition-transform duration-300">
+          <div className="p-4">
+            <div className="flex items-center mb-3">
+              <ClipboardDocumentIcon className="h-6 w-6 text-primary-main mr-2" />
+              <h2 className="text-lg font-semibold">
+                Assignments
+              </h2>
+            </div>
+            <p className="text-3xl font-bold text-center my-4">
+              {stats.totalAssignments}
+            </p>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 border-t border-gray-200 dark:border-gray-600">
+            <RouterLink 
+              to="/admin/assignments"
+              className="block w-full text-center text-primary-main hover:text-primary-dark"
+            >
+              Manage Assignments
+            </RouterLink>
+          </div>
+        </div>
         
-        <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
-              height: '100%',
-              transition: 'transform 0.2s ease-in-out',
-              '&:hover': {
-                transform: 'scale(1.03)',
-              },
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <InstitutionsIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div">
-                  Institutions
-                </Typography>
-              </Box>
-              <Typography variant="h3" component="div" sx={{ textAlign: 'center', my: 2 }}>
-                {stats.totalInstitutions}
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button 
-                size="small" 
-                component={RouterLink} 
-                to="/admin/institutions"
-                fullWidth
-              >
-                Manage Institutions
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-      </Grid>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transform hover:scale-[1.03] transition-transform duration-300">
+          <div className="p-4">
+            <div className="flex items-center mb-3">
+              <BuildingOfficeIcon className="h-6 w-6 text-primary-main mr-2" />
+              <h2 className="text-lg font-semibold">
+                Institutions
+              </h2>
+            </div>
+            <p className="text-3xl font-bold text-center my-4">
+              {stats.totalInstitutions}
+            </p>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 border-t border-gray-200 dark:border-gray-600">
+            <RouterLink 
+              to="/admin/institutions"
+              className="block w-full text-center text-primary-main hover:text-primary-dark"
+            >
+              Manage Institutions
+            </RouterLink>
+          </div>
+        </div>
+      </div>
       
-      {/* Recent Users */}
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <UsersIcon color="primary" sx={{ mr: 1 }} />
-              <Typography variant="h6" component="h2">
-                Recent Users
-              </Typography>
-            </Box>
-            <Divider sx={{ mb: 2 }} />
-            
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Joined</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {stats.recentUsers.map((user) => (
-                    <TableRow key={user._id}>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.role}</TableCell>
-                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button 
-                component={RouterLink} 
-                to="/admin/users" 
-                size="small"
-              >
-                View All Users
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
+      {/* Recent Users and Courses */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <UserGroupIcon className="h-6 w-6 text-primary-main mr-2" />
+            <h2 className="text-xl font-semibold">
+              Recent Users
+            </h2>
+          </div>
+          <hr className="my-3 border-gray-200 dark:border-gray-700" />
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead>
+                <tr>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Joined</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {stats.recentUsers.map((user) => (
+                  <tr key={user._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">{user.name}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">{user.email}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">{user.role}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">{new Date(user.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-4 flex justify-end">
+            <RouterLink 
+              to="/admin/users" 
+              className="text-sm text-primary-main hover:text-primary-dark"
+            >
+              View All Users
+            </RouterLink>
+          </div>
+        </div>
         
         {/* Recent Courses */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <CoursesIcon color="primary" sx={{ mr: 1 }} />
-              <Typography variant="h6" component="h2">
-                Recent Courses
-              </Typography>
-            </Box>
-            <Divider sx={{ mb: 2 }} />
-            
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Title</TableCell>
-                    <TableCell>Instructor</TableCell>
-                    <TableCell>Enrolled</TableCell>
-                    <TableCell>Created</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {stats.recentCourses.map((course) => (
-                    <TableRow key={course._id}>
-                      <TableCell>{course.title}</TableCell>
-                      <TableCell>{course.instructor.name}</TableCell>
-                      <TableCell>{course.enrolledCount}</TableCell>
-                      <TableCell>{new Date(course.createdAt).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button 
-                component={RouterLink} 
-                to="/admin/courses" 
-                size="small"
-              >
-                View All Courses
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Container>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <AcademicCapIcon className="h-6 w-6 text-primary-main mr-2" />
+            <h2 className="text-xl font-semibold">
+              Recent Courses
+            </h2>
+          </div>
+          <hr className="my-3 border-gray-200 dark:border-gray-700" />
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead>
+                <tr>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Instructor</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Enrolled</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {stats.recentCourses.map((course) => (
+                  <tr key={course._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">{course.title}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">{course.instructor.name}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">{course.enrolledCount}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">{new Date(course.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-4 flex justify-end">
+            <RouterLink 
+              to="/admin/courses" 
+              className="text-sm text-primary-main hover:text-primary-dark"
+            >
+              View All Courses
+            </RouterLink>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

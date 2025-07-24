@@ -1,51 +1,29 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  Alert,
-  Link,
-  LinearProgress
-} from '@mui/material'
-import {
-  School as CourseIcon,
-  Assignment as AssignmentIcon,
-  Timeline as ProgressIcon,
-  CheckCircle as CompletedIcon,
-  Schedule as ScheduleIcon,
-  PlayCircleOutline as OngoingIcon
-} from '@mui/icons-material'
+  AcademicCapIcon,
+  ClipboardDocumentIcon,
+  ChartBarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  PlayCircleIcon,
+  ArrowRightIcon
+} from '@heroicons/react/24/outline'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
-import { 
-  DashboardCardSkeleton, 
-  AssignmentListSkeleton, 
-  PageLoading 
-} from '../ui/LoadingComponents'
 
-interface Course {
+interface Subject {
   _id: string
-  title: string
+  name: string
   description: string
-  progress: number
+  progress?: number
   imageUrl?: string
 }
 
 interface ProgressStats {
-  totalCourses: number
-  completedCourses: number
-  inProgressCourses: number
+  totalSubjects: number
+  completedSubjects: number
+  inProgressSubjects: number
   totalAssignments: number
   completedAssignments: number
   pendingAssignments: number
@@ -56,15 +34,15 @@ interface Assignment {
   _id: string
   title: string
   dueDate: string
-  course: {
+  subject?: {
     _id: string
-    title: string
+    name: string
   }
   status?: string
 }
 
-interface CoursesResponse {
-  courses: Course[]
+interface SubjectsResponse {
+  subjects: Subject[]
   totalRecords: number
 }
 
@@ -74,12 +52,12 @@ interface AssignmentsResponse {
 }
 
 const Dashboard = () => {
-  const [courses, setCourses] = useState<Course[]>([])
+  const [subjects, setSubjects] = useState<Subject[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [progressStats, setProgressStats] = useState<ProgressStats>({
-    totalCourses: 0,
-    completedCourses: 0,
-    inProgressCourses: 0,
+    totalSubjects: 0,
+    completedSubjects: 0,
+    inProgressSubjects: 0,
     totalAssignments: 0,
     completedAssignments: 0,
     pendingAssignments: 0,
@@ -96,9 +74,9 @@ const Dashboard = () => {
       setError(null)
       
       try {
-        // Fetch enrolled courses
-        const coursesRes = await axios.get<CoursesResponse>('/api/courses/enrolled')
-        setCourses(coursesRes.data.courses.slice(0, 3)) // Show only 3 latest courses
+        // Fetch enrolled subjects
+        const subjectsRes = await axios.get<SubjectsResponse>('/api/curriculum/subjects')
+        setSubjects(subjectsRes.data.subjects?.slice(0, 3) || []) // Show only 3 latest subjects
         
         // Fetch upcoming assignments
         const assignmentsRes = await axios.get<AssignmentsResponse>('/api/assignments/upcoming')
@@ -110,31 +88,41 @@ const Dashboard = () => {
           // Fetch progress statistics - handle in a separate try/catch
           const statsRes = await axios.get('/api/progress/stats')
           statsData = statsRes.data
-          setProgressStats(statsData)
+          
+          // Map old course-based stats to new subject-based stats
+          setProgressStats({
+            totalSubjects: statsData.totalSubjects || 0,
+            completedSubjects: statsData.completedSubjects || 0,
+            inProgressSubjects: statsData.inProgressSubjects || 0,
+            totalAssignments: statsData.totalAssignments || 0,
+            completedAssignments: statsData.completedAssignments || 0,
+            pendingAssignments: statsData.pendingAssignments || 0,
+            overallProgress: statsData.overallProgress || 0
+          })
         } catch (statsErr) {
           console.error('Failed to fetch progress stats:', statsErr)
           // statsData will remain null and we'll use the fallback below
         }
         
-        // If API failed or returned no data, calculate stats from the courses and assignments
-        if (!statsData || !statsData.totalCourses) {
+        // If API failed or returned no data, calculate stats from the subjects and assignments
+        if (!statsData || !statsData.totalSubjects) {
           console.log('Using fallback stats calculation')
-          const allCourses = coursesRes.data.courses as Course[]
+          const allSubjects = subjectsRes.data.subjects || []
           const upcomingAssignments = assignmentsRes.data.assignments || []
-          const completedCourses = allCourses.filter((c: Course) => c.progress === 100).length
-          const inProgressCourses = allCourses.filter((c: Course) => c.progress > 0 && c.progress < 100).length
+          const completedSubjects = allSubjects.filter((s: Subject) => s.progress === 100).length
+          const inProgressSubjects = allSubjects.filter((s: Subject) => s.progress && s.progress > 0 && s.progress < 100).length
           const totalAssignments = upcomingAssignments.length
           const completedAssignments = upcomingAssignments.filter((a: Assignment) => a.status === 'completed').length
           
           setProgressStats({
-            totalCourses: allCourses.length,
-            completedCourses,
-            inProgressCourses,
+            totalSubjects: allSubjects.length,
+            completedSubjects,
+            inProgressSubjects,
             totalAssignments,
             completedAssignments,
             pendingAssignments: totalAssignments - completedAssignments,
-            overallProgress: allCourses.length > 0 
-              ? allCourses.reduce((sum: number, course: Course) => sum + (course.progress || 0), 0) / allCourses.length
+            overallProgress: allSubjects.length > 0 
+              ? allSubjects.reduce((sum: number, subject: Subject) => sum + (subject.progress || 0), 0) / allSubjects.length
               : 0
           })
         }
@@ -151,298 +139,266 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <PageLoading />
-        <Grid container spacing={3}>
-          {/* Dashboard cards skeleton */}
-          <Grid item xs={12} md={6}>
-            <DashboardCardSkeleton />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <DashboardCardSkeleton />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <DashboardCardSkeleton height={250} />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <DashboardCardSkeleton height={250} />
-          </Grid>
-        </Grid>
-      </Container>
+      <div className="container mx-auto px-6 py-8">
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-8 mb-6 animate-pulse">
+          <div className="h-8 w-2/3 bg-white/10 rounded-lg mb-3"></div>
+          <div className="h-4 w-1/2 bg-white/10 rounded-lg"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="bg-white/5 backdrop-blur-sm rounded-lg p-6 animate-pulse">
+              <div className="h-10 bg-white/10 rounded-lg w-1/2 mx-auto mb-2"></div>
+              <div className="h-4 bg-white/10 rounded-lg w-2/3 mx-auto"></div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 mb-6 animate-pulse">
+          <div className="h-6 bg-white/10 rounded-lg w-1/4 mb-4"></div>
+          <div className="h-4 bg-white/10 rounded-lg w-full mb-2"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2].map((item) => (
+            <div key={item} className="bg-white/5 backdrop-blur-sm rounded-lg p-6 animate-pulse min-h-[250px]">
+              <div className="h-6 bg-white/10 rounded-lg w-1/3 mb-4"></div>
+              <div className="h-24 bg-white/10 rounded-lg w-full mb-2"></div>
+            </div>
+          ))}
+        </div>
+      </div>
     )
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Welcome back, {user?.name}!
-      </Typography>
+    <div className="container mx-auto px-6 py-8">
+      {/* Welcome Header - More compact with subtle pattern */}
+      <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg p-6 mb-6 relative overflow-hidden group transition-all hover:shadow-lg hover:shadow-blue-500/10">
+        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%)] bg-[length:250%_250%] animate-[gradient_8s_linear_infinite]"></div>
+        <div className="relative flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-1">
+              Welcome back, {user?.name}!
+            </h1>
+            <p className="text-white/80 text-sm">Ready to continue your learning journey?</p>
+          </div>
+          <div className="hidden md:block">
+            <RouterLink 
+              to="/courses" 
+              className="inline-flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all group-hover:translate-x-1"
+            >
+              Browse Curriculum
+              <ArrowRightIcon className="w-4 h-4 ml-2" />
+            </RouterLink>
+          </div>
+        </div>
+      </div>
       
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4 mb-6">
           {error}
-        </Alert>
+        </div>
       )}
       
-      <Grid container spacing={3}>
-        {/* Recent Courses */}
-        <Grid item xs={12} md={6}>
-          <Paper
-            sx={{
-              p: 2,
-              display: 'flex',
-              flexDirection: 'column',
-              height: 350,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <CourseIcon color="primary" sx={{ mr: 1 }} />
-              <Typography component="h2" variant="h6" color="primary" gutterBottom>
-                Recent Courses
-              </Typography>
-            </Box>
-            
-            <Divider sx={{ mb: 2 }} />
-            
-            {courses.length > 0 ? (
-              <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-                <Grid container spacing={2}>
-                  {courses.map((course) => (
-                    <Grid item xs={12} key={course._id}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Typography variant="h6" component="div">
-                            {course.title}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" noWrap>
-                            {course.description}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                            <Box sx={{ width: '100%', mr: 1 }}>
-                              <LinearProgress variant="determinate" value={course.progress} />
-                            </Box>
-                            <Box sx={{ minWidth: 35 }}>
-                              <Typography variant="body2" color="text.secondary">{`${Math.round(
-                                course.progress,
-                              )}%`}</Typography>
-                            </Box>
-                          </Box>
-                        </CardContent>
-                        <CardActions>
-                          <Button 
-                            size="small" 
-                            component={RouterLink} 
-                            to={`/courses/${course._id}`}
-                          >
-                            View Course
-                          </Button>
-                        </CardActions>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
+      {/* Stats Overview - Improved hierarchy and interactions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="group bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-lg p-6 border border-white/5 transition-all hover:border-blue-500/20 hover:from-blue-500/20 hover:to-purple-500/20">
+          <div className="flex items-start justify-between mb-2">
+            <div className="p-2 bg-blue-500/10 rounded-lg transition-transform group-hover:scale-110 group-hover:bg-blue-500/20">
+              <AcademicCapIcon className="w-6 h-6 text-blue-500" />
+            </div>
+            <span className="text-xs font-medium text-blue-400 bg-blue-500/10 px-2 py-1 rounded-full">Total</span>
+          </div>
+          <div className="mt-4">
+            <div className="text-4xl font-bold text-white mb-2 transition-all group-hover:scale-105 group-hover:translate-x-1">{progressStats.totalSubjects}</div>
+            <div className="text-sm text-blue-200/60 font-medium uppercase tracking-wide">Subjects</div>
+          </div>
+        </div>
+        
+        <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-lg p-6 border border-white/5 transition-all hover:border-purple-500/20 hover:from-purple-500/20 hover:to-pink-500/20">
+          <div className="flex items-start justify-between mb-2">
+            <div className="p-2 bg-purple-500/10 rounded-lg transition-transform group-hover:scale-110 group-hover:bg-purple-500/20">
+              <ChartBarIcon className="w-6 h-6 text-purple-500" />
+            </div>
+            <span className="text-xs font-medium text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">Progress</span>
+          </div>
+          <div className="mt-4">
+            <div className="text-4xl font-bold text-white mb-2 transition-all group-hover:scale-105 group-hover:translate-x-1">{progressStats.overallProgress.toFixed(0)}%</div>
+            <div className="text-sm text-purple-200/60 font-medium uppercase tracking-wide">Overall Completion</div>
+          </div>
+        </div>
+        
+        <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 backdrop-blur-sm rounded-lg p-6 border border-white/5 transition-all hover:border-indigo-500/20 hover:from-indigo-500/20 hover:to-blue-500/20">
+          <div className="flex items-start justify-between mb-2">
+            <div className="p-2 bg-indigo-500/10 rounded-lg transition-transform group-hover:scale-110 group-hover:bg-indigo-500/20">
+              <ClipboardDocumentIcon className="w-6 h-6 text-indigo-500" />
+            </div>
+            <span className="text-xs font-medium text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-full">Total</span>
+          </div>
+          <div className="mt-4">
+            <div className="text-4xl font-bold text-white mb-2 transition-all group-hover:scale-105 group-hover:translate-x-1">{progressStats.totalAssignments}</div>
+            <div className="text-sm text-indigo-200/60 font-medium uppercase tracking-wide">Assignments</div>
+          </div>
+        </div>
+        
+        <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-sm rounded-lg p-6 border border-white/5 transition-all hover:border-green-500/20 hover:from-green-500/20 hover:to-emerald-500/20">
+          <div className="flex items-start justify-between mb-2">
+            <div className="p-2 bg-green-500/10 rounded-lg transition-transform group-hover:scale-110 group-hover:bg-green-500/20">
+              <CheckCircleIcon className="w-6 h-6 text-green-500" />
+            </div>
+            <span className="text-xs font-medium text-green-400 bg-green-500/10 px-2 py-1 rounded-full">Completed</span>
+          </div>
+          <div className="mt-4">
+            <div className="text-4xl font-bold text-white mb-2 transition-all group-hover:scale-105 group-hover:translate-x-1">{progressStats.completedSubjects}</div>
+            <div className="text-sm text-green-200/60 font-medium uppercase tracking-wide">Subjects Finished</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Recent Subjects */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <AcademicCapIcon className="w-5 h-5 text-blue-500" />
+            <h3 className="text-white font-semibold">Recent Subjects</h3>
+          </div>
+          
+          <div>
+            {subjects.length > 0 ? (
+              <div className="space-y-4">
+                {subjects.map((subject) => (
+                  <div key={subject._id} className="bg-white/5 rounded-lg overflow-hidden">
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-white mb-1">
+                        {subject.name}
+                      </h3>
+                      <p className="text-sm text-gray-400 mb-3 line-clamp-2">
+                        {subject.description}
+                      </p>
+                      {subject.progress !== undefined && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-white/5 rounded-full">
+                            <div 
+                              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+                              style={{ width: `${subject.progress}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-white">
+                            {Math.round(subject.progress)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="border-t border-white/5 px-4 py-2">
+                      <RouterLink 
+                        to={`/curriculum/subjects/${subject._id}`}
+                        className="text-sm text-blue-400 hover:text-blue-300 inline-flex items-center"
+                      >
+                        Continue Learning
+                        <ArrowRightIcon className="w-3 h-3 ml-1" />
+                      </RouterLink>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <Typography variant="body1" color="text.secondary">
-                  No courses enrolled yet.{' '}
-                  <Link component={RouterLink} to="/courses">
-                    Browse courses
-                  </Link>
-                </Typography>
-              </Box>
+              <div className="text-center py-8">
+                <p className="text-gray-400 mb-4">No subjects available yet.</p>
+                <RouterLink 
+                  to="/courses" 
+                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 transition-all"
+                >
+                  Browse Curriculum
+                </RouterLink>
+              </div>
             )}
-            
-            <Box sx={{ mt: 'auto', pt: 2 }}>
-              <Button 
-                component={RouterLink} 
-                to="/courses" 
-                variant="outlined" 
-                fullWidth
-              >
-                View All Courses
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
+          </div>
+        </div>
         
         {/* Upcoming Assignments */}
-        <Grid item xs={12} md={6}>
-          <Paper
-            sx={{
-              p: 2,
-              display: 'flex',
-              flexDirection: 'column',
-              height: 350,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <AssignmentIcon color="primary" sx={{ mr: 1 }} />
-              <Typography component="h2" variant="h6" color="primary" gutterBottom>
-                Upcoming Assignments
-              </Typography>
-            </Box>
-            
-            <Divider sx={{ mb: 2 }} />
-            
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <ClipboardDocumentIcon className="w-5 h-5 text-blue-500" />
+            <h3 className="text-white font-semibold">Upcoming Assignments</h3>
+          </div>
+          
+          <div>
             {assignments.length > 0 ? (
-              <List sx={{ width: '100%', flexGrow: 1, overflow: 'auto' }}>
+              <div className="space-y-2">
                 {assignments.map((assignment) => (
-                  <ListItem
+                  <RouterLink 
                     key={assignment._id}
-                    button
-                    component={RouterLink}
                     to={`/assignments/${assignment._id}`}
-                    divider
+                    className="block bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors"
                   >
-                    <ListItemText
-                      primary={assignment.title}
-                      secondary={
-                        <>
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            color="text.primary"
-                          >
-                            {assignment.course.title}
-                          </Typography>
-                          {` — Due: ${new Date(assignment.dueDate).toLocaleDateString()}`}
-                        </>
-                      }
-                    />
-                  </ListItem>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-white mb-1">{assignment.title}</h4>
+                        <p className="text-sm text-gray-400">
+                          {assignment.subject?.name || 'General'}
+                        </p>
+                      </div>
+                      <div className="px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-500 text-xs font-medium">
+                        Due {new Date(assignment.dueDate).toLocaleDateString(undefined, { 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </div>
+                    </div>
+                  </RouterLink>
                 ))}
-              </List>
+              </div>
             ) : (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <Typography variant="body1" color="text.secondary">
-                  No upcoming assignments.
-                </Typography>
-              </Box>
+              <div className="text-center py-8">
+                <p className="text-gray-400">No upcoming assignments.</p>
+              </div>
             )}
-            
-            <Box sx={{ mt: 'auto', pt: 2 }}>
-              <Button 
-                component={RouterLink} 
-                to="/assignments" 
-                variant="outlined" 
-                fullWidth
-              >
-                View All Assignments
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
+          </div>
+        </div>
+      </div>
+
+      {/* Learning Progress Section - Moved to bottom */}
+      <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6">
+        <h3 className="flex items-center gap-2 mb-6 text-white font-semibold">
+          <ChartBarIcon className="w-5 h-5 text-blue-500" />
+          <span>Learning Progress</span>
+        </h3>
         
-        {/* Learning Progress */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <ProgressIcon color="primary" sx={{ mr: 1 }} />
-              <Typography component="h2" variant="h6" color="primary" gutterBottom>
-                Learning Progress
-              </Typography>
-            </Box>
-            
-            <Divider sx={{ mb: 2 }} />
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={4}>
-                <Box sx={{ textAlign: 'center', p: 2 }}>
-                  <Typography variant="h5" color="primary">
-                    {progressStats.overallProgress.toFixed(0)}%
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Overall Progress
-                  </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={progressStats.overallProgress} 
-                    sx={{ mt: 2, height: 10, borderRadius: 5 }} 
-                  />
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={8}>
-                <Grid container spacing={2}>
-                  <Grid item xs={6} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <CourseIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">{progressStats.totalCourses}</Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Courses
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid item xs={6} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <CompletedIcon color="success" sx={{ mr: 1 }} />
-                        <Typography variant="h6">{progressStats.completedCourses}</Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Completed
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid item xs={6} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <OngoingIcon color="info" sx={{ mr: 1 }} />
-                        <Typography variant="h6">{progressStats.inProgressCourses}</Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        In Progress
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid item xs={6} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <AssignmentIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">{progressStats.totalAssignments}</Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Assignments
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid item xs={6} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <CompletedIcon color="success" sx={{ mr: 1 }} />
-                        <Typography variant="h6">{progressStats.completedAssignments}</Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Completed
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid item xs={6} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ScheduleIcon color="warning" sx={{ mr: 1 }} />
-                        <Typography variant="h6">{progressStats.pendingAssignments}</Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Pending
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Container>
+        <div className="h-2 bg-white/5 rounded-full mb-6">
+          <div 
+            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+            style={{ width: `${progressStats.overallProgress}%` }}
+          ></div>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white/5 rounded-lg p-4 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-blue-500/10 text-blue-500 mb-3">
+              <PlayCircleIcon className="w-6 h-6" />
+            </div>
+            <div className="text-xl font-bold text-white mb-1">{progressStats.inProgressSubjects}</div>
+            <div className="text-sm text-gray-400">In Progress</div>
+          </div>
+          
+          <div className="bg-white/5 rounded-lg p-4 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10 text-green-500 mb-3">
+              <CheckCircleIcon className="w-6 h-6" />
+            </div>
+            <div className="text-xl font-bold text-white mb-1">{progressStats.completedSubjects}</div>
+            <div className="text-sm text-gray-400">Completed</div>
+          </div>
+          
+          <div className="bg-white/5 rounded-lg p-4 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-yellow-500/10 text-yellow-500 mb-3">
+              <ClockIcon className="w-6 h-6" />
+            </div>
+            <div className="text-xl font-bold text-white mb-1">{progressStats.pendingAssignments}</div>
+            <div className="text-sm text-gray-400">Pending</div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

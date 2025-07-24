@@ -55,15 +55,12 @@ const errorHandler = require('./src/middleware/errorMiddleware');
 // Define routes
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/tenants', require('./src/routes/tenants'));
-app.use('/api/courses', require('./src/routes/courses'));
+app.use('/api/curriculum', require('./src/routes/curriculum'));
 app.use('/api/assignments', require('./src/routes/assignments'));
 app.use('/api/certifications', require('./src/routes/certifications'));
-app.use('/api/quizzes', require('./src/routes/quizzes'));
 app.use('/api/users', require('./src/routes/users'));
 app.use('/api/institutions', require('./src/routes/institutions'));
 app.use('/api/progress', require('./src/routes/userProgress'));
-app.use('/api/modules', require('./src/routes/modules'));
-app.use('/api/content', require('./src/routes/content'));
 
 // Basic route
 app.get('/', (req, res) => {

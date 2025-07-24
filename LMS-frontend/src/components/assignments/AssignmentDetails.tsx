@@ -2,34 +2,16 @@ import { useState, useEffect, useContext } from 'react'
 import { useParams, Link as RouterLink } from 'react-router-dom'
 import AuthContext from '../../context/AuthContext'
 import {
-  Container,
-  Typography,
-  Box,
-  Paper,
-  Grid,
-  Button,
-  Chip,
-  LinearProgress,
-  Alert,
-  Divider,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText
-} from '@mui/material'
-import {
-  Assignment as AssignmentIcon,
-  School as CourseIcon,
-  CalendarToday as CalendarIcon,
-  AccessTime as TimeIcon,
-  Grading as GradingIcon,
-  CheckCircle as CompletedIcon,
-  Schedule as PendingIcon,
-  Warning as OverdueIcon,
-  ArrowBack as BackIcon
-} from '@mui/icons-material'
+  ClipboardDocumentIcon,
+  AcademicCapIcon,
+  CalendarDaysIcon,
+  ClockIcon,
+  DocumentTextIcon,
+  CheckCircleIcon,
+  ClockIcon as ClockIconOutline,
+  ExclamationTriangleIcon,
+  ArrowLeftIcon
+} from '@heroicons/react/24/outline'
 import axios from 'axios'
 
 interface Assignment {
@@ -103,423 +85,398 @@ const AssignmentDetails = () => {
   const getStatusChip = (status: string) => {
     switch (status) {
       case 'submitted':
-        return <Chip 
-          icon={<CompletedIcon />} 
-          label="Submitted" 
-          color="success" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-success-light text-success-dark text-sm">
+            <CheckCircleIcon className="h-4 w-4 mr-1" />
+            <span>Submitted</span>
+          </div>
+        )
       case 'graded':
-        return <Chip 
-          icon={<CompletedIcon />} 
-          label="Graded" 
-          color="success" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-success-light text-success-dark text-sm">
+            <CheckCircleIcon className="h-4 w-4 mr-1" />
+            <span>Graded</span>
+          </div>
+        )
       case 'passed':
-        return <Chip 
-          icon={<CompletedIcon />} 
-          label="Passed" 
-          color="success" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-success-light text-success-dark text-sm">
+            <CheckCircleIcon className="h-4 w-4 mr-1" />
+            <span>Passed</span>
+          </div>
+        )
       case 'failed':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Failed" 
-          color="error" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-error-light text-error-dark text-sm">
+            <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
+            <span>Failed</span>
+          </div>
+        )
       case 'resubmit':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Needs Revision" 
-          color="warning" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-warning-light text-warning-dark text-sm">
+            <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
+            <span>Needs Revision</span>
+          </div>
+        )
       case 'late':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Late" 
-          color="warning" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-warning-light text-warning-dark text-sm">
+            <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
+            <span>Late</span>
+          </div>
+        )
       case 'overdue':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Overdue" 
-          color="error" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-error-light text-error-dark text-sm">
+            <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
+            <span>Overdue</span>
+          </div>
+        )
       case 'missed':
-        return <Chip 
-          icon={<OverdueIcon />} 
-          label="Missed" 
-          color="error" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-error-light text-error-dark text-sm">
+            <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
+            <span>Missed</span>
+          </div>
+        )
       case 'pending':
       default:
-        return <Chip 
-          icon={<PendingIcon />} 
-          label="Pending" 
-          color="primary" 
-          variant="filled" 
-        />
+        return (
+          <div className="flex items-center px-3 py-1 rounded-full bg-primary-light text-primary-dark text-sm">
+            <ClockIconOutline className="h-4 w-4 mr-1" />
+            <span>Pending</span>
+          </div>
+        )
     }
   }
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <LinearProgress />
-      </Container>
+      <div className="container mx-auto px-4 py-8">
+        <div className="w-full h-1 bg-primary-main animate-pulse"></div>
+      </div>
     )
   }
 
   if (!assignment) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error">
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-error-light text-error-dark border border-error-main rounded-md p-4">
           Assignment not found or has been removed.
-        </Alert>
-      </Container>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <div className="container mx-auto px-4 py-8">
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <div className="bg-error-light text-error-dark border border-error-main rounded-md p-4 mb-6">
           {error}
-        </Alert>
+        </div>
       )}
       
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Button
-          component={RouterLink}
+      <div className="flex items-center mb-4">
+        <RouterLink
           to="/assignments"
-          startIcon={<BackIcon />}
-          sx={{ mr: 2 }}
+          className="flex items-center text-primary-main hover:text-primary-dark"
         >
-          Back to Assignments
-        </Button>
-      </Box>
+          <ArrowLeftIcon className="h-5 w-5 mr-1" />
+          <span>Back to Assignments</span>
+        </RouterLink>
+      </div>
       
-      <Grid container spacing={4}>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Assignment Header */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <AssignmentIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Typography variant="h4" component="h1">
+        <div className="md:col-span-12">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center">
+                <ClipboardDocumentIcon className="h-10 w-10 text-primary-main mr-3" />
+                <h1 className="text-2xl font-bold">
                   {assignment.title}
-                </Typography>
-              </Box>
+                </h1>
+              </div>
               {getStatusChip(assignment.submissionStatus || 'pending')}
-            </Box>
+            </div>
             
-            <Divider sx={{ my: 2 }} />
+            <hr className="my-4 border-gray-200 dark:border-gray-700" />
             
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <List dense>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CourseIcon />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Course" 
-                      secondary={
-                        <RouterLink to={`/courses/${assignment.course._id}`}>
-                          {assignment.course.title}
-                        </RouterLink>
-                      } 
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CalendarIcon />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Due Date" 
-                      secondary={new Date(assignment.dueDate).toLocaleDateString()} 
-                    />
-                  </ListItem>
-                </List>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <List dense>
-                  <ListItem>
-                    <ListItemIcon>
-                      <GradingIcon />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Points" 
-                      secondary={`${assignment.totalPoints} (Passing: ${assignment.passingPoints || Math.round(assignment.totalPoints * 0.6)})`} 
-                    />
-                  </ListItem>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <AcademicCapIcon className="h-5 w-5 text-gray-500 mt-0.5 mr-2" />
+                    <div>
+                      <span className="font-medium">Course:</span>{' '}
+                      <RouterLink to={`/courses/${assignment.course._id}`} className="text-primary-main hover:text-primary-dark">
+                        {assignment.course.title}
+                      </RouterLink>
+                    </div>
+                  </li>
+                  <li className="flex items-start">
+                    <CalendarDaysIcon className="h-5 w-5 text-gray-500 mt-0.5 mr-2" />
+                    <div>
+                      <span className="font-medium">Due Date:</span>{' '}
+                      <span>{new Date(assignment.dueDate).toLocaleDateString()}</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <DocumentTextIcon className="h-5 w-5 text-gray-500 mt-0.5 mr-2" />
+                    <div>
+                      <span className="font-medium">Points:</span>{' '}
+                      <span>{assignment.totalPoints} (Passing: {assignment.passingPoints || Math.round(assignment.totalPoints * 0.6)})</span>
+                    </div>
+                  </li>
                   {assignment.submission && assignment.submission.submittedAt && (
-                    <ListItem>
-                      <ListItemIcon>
-                        <TimeIcon />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Submitted" 
-                        secondary={new Date(assignment.submission.submittedAt).toLocaleString()} 
-                      />
-                    </ListItem>
+                    <li className="flex items-start">
+                      <ClockIcon className="h-5 w-5 text-gray-500 mt-0.5 mr-2" />
+                      <div>
+                        <span className="font-medium">Submitted:</span>{' '}
+                        <span>{new Date(assignment.submission.submittedAt).toLocaleString()}</span>
+                      </div>
+                    </li>
                   )}
-                </List>
-              </Grid>
-            </Grid>
+                </ul>
+              </div>
+            </div>
             
             {/* Display assignment status badge */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+            <div className="flex justify-end mt-4">
               {assignment.status && (
                 // Only show status badge if user is instructor/admin OR status is not 'draft'
                 (user?.role === 'instructor' || user?.role === 'admin' || assignment.status !== 'draft') && (
-                  <Chip 
-                    label={`Status: ${assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}`}
-                    color={assignment.status === 'published' ? 'success' : assignment.status === 'draft' ? 'default' : 'warning'}
-                    variant="outlined"
-                    size="small"
-                  />
+                  <span className={`px-2 py-1 text-xs rounded-full border ${
+                    assignment.status === 'published' 
+                      ? 'border-success-main text-success-dark' 
+                      : assignment.status === 'draft' 
+                      ? 'border-gray-300 text-gray-600' 
+                      : 'border-warning-main text-warning-dark'
+                  }`}>
+                    Status: {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
+                  </span>
                 )
               )}
               {assignment.createdAt && (
-                <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+                <span className="text-xs text-gray-500 ml-2 mt-1">
                   Created: {new Date(assignment.createdAt).toLocaleDateString()}
-                </Typography>
+                </span>
               )}
-            </Box>
-          </Paper>
-        </Grid>
+            </div>
+          </div>
+        </div>
         
         {/* Assignment Content */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+        <div className="md:col-span-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-3">
               Description
-            </Typography>
-            <Typography variant="body1" paragraph>
+            </h2>
+            <p className="mb-6">
               {assignment.description}
-            </Typography>
+            </p>
             
-            <Divider sx={{ my: 3 }} />
+            <hr className="my-6 border-gray-200 dark:border-gray-700" />
             
-            <Typography variant="h6" gutterBottom>
+            <h2 className="text-xl font-semibold mb-3">
               Instructions
-            </Typography>
-            <Typography variant="body1" paragraph>
+            </h2>
+            <p className="mb-6">
               {assignment.instructions}
-            </Typography>
+            </p>
             
             {/* Submission Information */}
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" gutterBottom>
+            <div className="mt-6">
+              <h2 className="text-xl font-semibold mb-3">
                 Submission Information
-              </Typography>
-              <Paper variant="outlined" sx={{ p: 2 }}>
+              </h2>
+              <div className="border border-gray-200 dark:border-gray-700 rounded-md p-4 bg-gray-50 dark:bg-gray-900">
                 {assignment.submissionType ? (
                   <>
-                    <Typography variant="body2">
-                      <strong>Submission Type:</strong> {assignment.submissionType.charAt(0).toUpperCase() + assignment.submissionType.slice(1)}
-                    </Typography>
+                    <p className="mb-2">
+                      <span className="font-medium">Submission Type:</span> {assignment.submissionType.charAt(0).toUpperCase() + assignment.submissionType.slice(1)}
+                    </p>
                     
                     {assignment.submissionType === 'file' && assignment.maxFileSize && (
-                      <Typography variant="body2" sx={{ mt: 1 }}>
-                        <strong>Max File Size:</strong> {assignment.maxFileSize} MB
-                      </Typography>
+                      <p className="mb-2">
+                        <span className="font-medium">Max File Size:</span> {assignment.maxFileSize} MB
+                      </p>
                     )}
                   </>
                 ) : (
-                  <Typography variant="body2">
-                    <strong>Submission Type:</strong> Text
-                  </Typography>
+                  <p className="mb-2">
+                    <span className="font-medium">Submission Type:</span> Text
+                  </p>
                 )}
                 
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  <strong>Late Submissions:</strong> {assignment.allowLateSubmissions ? 
+                <p>
+                  <span className="font-medium">Late Submissions:</span> {assignment.allowLateSubmissions ? 
                     `Allowed${assignment.latePenalty > 0 ? ` (${assignment.latePenalty}% penalty)` : ''}` : 
                     'Not allowed'}
-                </Typography>
-              </Paper>
-            </Box>
+                </p>
+              </div>
+            </div>
             
             {/* Attachments Section */}
             {assignment.attachments && assignment.attachments.length > 0 && (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
+              <div className="mt-6">
+                <h2 className="text-xl font-semibold mb-3">
                   Attachments
-                </Typography>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <List dense>
+                </h2>
+                <div className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
+                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                     {assignment.attachments.map((attachment, index) => (
-                      <ListItem key={index}>
-                        <ListItemIcon>
-                          <AssignmentIcon />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={attachment.name}
-                          secondary={attachment.fileType} 
-                        />
-                        <Button 
-                          variant="outlined" 
-                          size="small"
-                          component="a"
+                      <li key={index} className="py-3 flex items-center justify-between">
+                        <div className="flex items-center">
+                          <ClipboardDocumentIcon className="h-5 w-5 text-gray-500 mr-2" />
+                          <div>
+                            <div>{attachment.name}</div>
+                            <div className="text-xs text-gray-500">{attachment.fileType}</div>
+                          </div>
+                        </div>
+                        <a 
                           href={attachment.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
+                          className="px-3 py-1 border border-primary-main text-primary-main rounded hover:bg-primary-light/10 text-sm"
                         >
                           Download
-                        </Button>
-                      </ListItem>
+                        </a>
+                      </li>
                     ))}
-                  </List>
-                </Paper>
-              </Box>
+                  </ul>
+                </div>
+              </div>
             )}
             
             {!assignment.submission && 
              !['submitted', 'late', 'graded', 'passed', 'failed', 'resubmit'].includes(assignment.submissionStatus || '') && 
              assignment.submissionStatus !== 'missed' && 
              user?.role === 'student' && (
-              <Box sx={{ mt: 4 }}>
-                <Button
-                  variant="contained"
-                  size="large"
-                  component={RouterLink}
+              <div className="mt-8">
+                <RouterLink
                   to={`/assignments/${assignment._id}/submit`}
-                  startIcon={<AssignmentIcon />}
+                  className="inline-flex items-center px-4 py-2 bg-primary-main text-white rounded hover:bg-primary-dark"
                 >
+                  <ClipboardDocumentIcon className="h-5 w-5 mr-2" />
                   Submit Assignment
-                </Button>
-              </Box>
+                </RouterLink>
+              </div>
             )}
-          </Paper>
-        </Grid>
+          </div>
+        </div>
         
         {/* Submission Status */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Submission Status
-              </Typography>
-              
-              {assignment.submission ? (
-                <>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <CompletedIcon color="success" sx={{ mr: 1 }} />
-                    <Typography variant="body1">
-                      Submitted on {new Date(assignment.submission.submittedAt).toLocaleDateString()}
-                    </Typography>
-                  </Box>
-                  
-                  {assignment.submission.grade !== undefined ? (
-                    <Box sx={{ mt: 3 }}>
-                      <Typography variant="subtitle1" gutterBottom>
-                        Grade: {assignment.submission.grade} / {assignment.totalPoints}
-                        {assignment.submission.grade >= assignment.totalPoints * 0.6 ? (
-                          <Chip 
-                            label="Passed" 
-                            color="success" 
-                            size="small" 
-                            sx={{ ml: 1 }}
-                          />
-                        ) : (
-                          <Chip 
-                            label="Failed" 
-                            color="error" 
-                            size="small" 
-                            sx={{ ml: 1 }}
-                          />
-                        )}
-                      </Typography>
-                      
-                      {assignment.submission.feedback && (
-                        <>
-                          <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                            Feedback:
-                          </Typography>
-                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                            <Typography variant="body2">
-                              {assignment.submission.feedback}
-                            </Typography>
-                          </Paper>
-                        </>
+        <div className="md:col-span-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">
+              Submission Status
+            </h2>
+            
+            {assignment.submission ? (
+              <>
+                <div className="flex items-center mb-4">
+                  <CheckCircleIcon className="h-5 w-5 text-success-main mr-2" />
+                  <p>
+                    Submitted on {new Date(assignment.submission.submittedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                
+                {assignment.submission.grade !== undefined ? (
+                  <div className="mt-4">
+                    <p className="font-semibold mb-1">
+                      Grade: {assignment.submission.grade} / {assignment.totalPoints}
+                      {assignment.submission.grade >= assignment.totalPoints * 0.6 ? (
+                        <span className="ml-2 px-2 py-0.5 bg-success-light text-success-dark text-xs rounded-full">
+                          Passed
+                        </span>
+                      ) : (
+                        <span className="ml-2 px-2 py-0.5 bg-error-light text-error-dark text-xs rounded-full">
+                          Failed
+                        </span>
                       )}
-                    </Box>
-                  ) : (
-                    <Alert severity="info">
-                      Your submission is under review.
-                    </Alert>
-                  )}
-                  
-                  {assignment.submission.status === 'returned' && (
-                    <Box sx={{ mt: 3 }}>
-                      <Alert severity="warning">
-                        Your submission needs revision. Please review the feedback and resubmit.
-                      </Alert>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        component={RouterLink}
-                        to={`/assignments/${assignment._id}/submit`}
-                        sx={{ mt: 2 }}
-                      >
-                        Resubmit Assignment
-                      </Button>
-                    </Box>
-                  )}
-                </>
-              ) : (
-                <>
-                  {assignment.submissionStatus === 'missed' ? (
-                    <Alert severity="error">
-                      This assignment is past due and no longer accepts submissions.
-                    </Alert>
-                  ) : assignment.submissionStatus === 'overdue' ? (
-                    <Alert severity="warning">
-                      This assignment is past due, but late submissions are still accepted. 
-                      {assignment.latePenalty > 0 && ` Note that a ${assignment.latePenalty}% penalty will apply.`}
-                    </Alert>
-                  ) : (
-                    <>
-                      {/* Only show this message to students */}
-                      {user?.role === 'student' ? (
-                        <Alert severity="warning">
-                          You haven't submitted this assignment yet. The due date is {new Date(assignment.dueDate).toLocaleDateString()}.
-                        </Alert>
-                      ) : (user?.role === 'instructor' || user?.role === 'admin') && (
-                        <Alert severity="warning">
-                          Instructors and admins cannot submit assignments.
-                        </Alert>
-                      )}
-                    </>
-                  )}
-                  
-                  {assignment.submissionStatus !== 'missed' && user?.role === 'student' && (
-                    <Box sx={{ mt: 3 }}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        component={RouterLink}
-                        to={`/assignments/${assignment._id}/submit`}
-                      >
-                        Submit Assignment
-                      </Button>
-                    </Box>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Container>
+                    </p>
+                    
+                    {assignment.submission.feedback && (
+                      <>
+                        <p className="font-semibold mt-4 mb-2">
+                          Feedback:
+                        </p>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded">
+                          <p className="text-sm">
+                            {assignment.submission.feedback}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded">
+                    Your submission is under review.
+                  </div>
+                )}
+                
+                {assignment.submission.status === 'returned' && (
+                  <div className="mt-4">
+                    <div className="p-3 bg-warning-light text-warning-dark border border-warning-main rounded mb-3">
+                      Your submission needs revision. Please review the feedback and resubmit.
+                    </div>
+                    <RouterLink
+                      to={`/assignments/${assignment._id}/submit`}
+                      className="block w-full text-center py-2 bg-primary-main text-white rounded hover:bg-primary-dark"
+                    >
+                      Resubmit Assignment
+                    </RouterLink>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {assignment.submissionStatus === 'missed' ? (
+                  <div className="p-3 bg-error-light text-error-dark border border-error-main rounded">
+                    This assignment is past due and no longer accepts submissions.
+                  </div>
+                ) : assignment.submissionStatus === 'overdue' ? (
+                  <div className="p-3 bg-warning-light text-warning-dark border border-warning-main rounded">
+                    This assignment is past due, but late submissions are still accepted. 
+                    {assignment.latePenalty > 0 && ` Note that a ${assignment.latePenalty}% penalty will apply.`}
+                  </div>
+                ) : (
+                  <>
+                    {/* Only show this message to students */}
+                    {user?.role === 'student' ? (
+                      <div className="p-3 bg-warning-light text-warning-dark border border-warning-main rounded">
+                        You haven't submitted this assignment yet. The due date is {new Date(assignment.dueDate).toLocaleDateString()}.
+                      </div>
+                    ) : (user?.role === 'instructor' || user?.role === 'admin') && (
+                      <div className="p-3 bg-warning-light text-warning-dark border border-warning-main rounded">
+                        Instructors and admins cannot submit assignments.
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                {assignment.submissionStatus !== 'missed' && user?.role === 'student' && (
+                  <div className="mt-4">
+                    <RouterLink
+                      to={`/assignments/${assignment._id}/submit`}
+                      className="block w-full text-center py-2 bg-primary-main text-white rounded hover:bg-primary-dark"
+                    >
+                      Submit Assignment
+                    </RouterLink>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
