@@ -670,3 +670,104 @@ exports.validateModuleData = (req, res, next) => {
   
   next();
 };
+
+// @desc    Public: Get all modules for a course for tenant "ngo"
+// @route   GET /api/ngo-lms/ngo-public-course/courseId/modules
+// @access  Public
+const { switchTenant } = require('../../utils/tenantUtils'); // adjust this path to match your project
+
+exports.getPublicNgoModules = async (req, res) => {
+  try {
+    console.log('Getting modules for course (public):', req.params.courseId);
+    
+    // Validate courseId parameter
+    if (!req.params.courseId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Course ID is required'
+      });
+    }
+
+    const tenantId = 'ngo'; // 👈 hardcoded tenant
+    const tenantConnection = await switchTenant(tenantId);
+    
+    if (!tenantConnection || tenantConnection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        error: 'Could not connect to tenant database',
+      });
+    }
+
+    // Get models from tenant connection
+    const CourseModel = tenantConnection.model('Ngocourse');
+    const ModuleModel = tenantConnection.model('Ngomodule');
+
+    // Set timeout for database operations
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database operation timed out')), 30000);
+    });
+
+    // Check if course exists
+    const course = await Promise.race([
+      CourseModel.findById(req.params.courseId),
+      timeoutPromise
+    ]);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'Course not found'
+      });
+    }
+
+    // Get all modules for the course
+    const modules = await Promise.race([
+      ModuleModel.find({ courseId: req.params.courseId })
+        .populate('courseId', 'title description')
+        .sort({ order: 1 }) // Sort by order
+        .lean(),
+      timeoutPromise
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      totalRecords: modules.length,
+      modules,
+    });
+
+  } catch (error) {
+    console.error('getPublicNgoModules error:', error.message);
+    console.error('Error stack:', error.stack);
+        
+    // Handle timeout errors
+    if (error.message === 'Database operation timed out' || 
+        error.message.includes('buffering timed out')) {
+      return res.status(504).json({
+        success: false,
+        error: 'Database operation timed out. Please check your database connection and try again.'
+      });
+    }
+        
+    // Handle cast errors (invalid ObjectId)
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid course ID format'
+      });
+    }
+
+    // Handle MongoDB connection errors
+    if (error.name === 'MongooseError' || error.name === 'MongoError') {
+      return res.status(503).json({
+        success: false,
+        error: 'Database connection error. Please try again later.'
+      });
+    }
+        
+    // Generic server error
+    return res.status(500).json({
+      success: false,
+      error: 'Server error while fetching modules',
+    });
+  }
+};

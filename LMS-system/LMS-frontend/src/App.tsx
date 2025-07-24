@@ -42,6 +42,7 @@ import CourseManagement from './components/admin/CourseManagement'
 
 // Context
 import AuthContext, { AuthProvider } from './context/AuthContext'
+import Demo from './components/Demo'
 
 const darkTheme = createTheme({
   palette: {
@@ -106,7 +107,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            
+            <Route path="/demo" element={<Demo />} />
             {/* Protected routes */}
             <Route path="/" element={
               <ProtectedRoute>

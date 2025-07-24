@@ -472,6 +472,100 @@ exports.deleteNgoCourse = async (req, res) => {
   }
 };
 
+// @desc    Public: Get all courses for tenant "ngo"
+// @route   GET /api/ngo-lms/ngo-public-courses
+// @access  Public
+
+const { switchTenant } = require('../../utils/tenantUtils'); // adjust this path to match your project
+
+exports.getPublicNgoCourses = async (req, res) => {
+  try {
+    const tenantId = 'ngo'; // 👈 hardcoded tenant
+
+    const tenantConnection = await switchTenant(tenantId);
+
+    if (!tenantConnection || tenantConnection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        error: 'Could not connect to tenant database',
+      });
+    }
+
+    // const Course = tenantConnection.model('Course');
+    const CourseModel = getCourseModel(tenantConnection);
+    const courses = await CourseModel.find({ tenantId }) 
+      .sort('-createdAt')
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      totalRecords: courses.length,
+      courses,
+    });
+  } catch (error) {
+    console.error('getPublicCourses error:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Server error while fetching courses',
+    });
+  }
+};
+
+// @desc    Public: Get course by ID for tenant "ngo"
+// @route   GET /api/ngo-lms/ngo-public-course/:courseId
+// @access  Public
+exports.getPublicNgoCourse = async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    console.log('Fetching NGO course with ID:', courseId);
+    
+    // Validate courseId format
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid course ID format',
+      });
+    }
+
+    const tenantId = 'ngo'; // hardcoded tenant
+    const tenantConnection = await switchTenant(tenantId);
+
+    if (!tenantConnection || tenantConnection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        error: 'Could not connect to tenant database',
+      });
+    }
+
+    const CourseModel = getCourseModel(tenantConnection);
+    
+    const course = await CourseModel.findOne({ 
+      _id: new mongoose.Types.ObjectId(courseId), // Explicitly create ObjectId
+      tenantId 
+    }).lean();
+
+    console.log('Found course:', course); // Debug log
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'Course not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      course, 
+    });
+  } catch (error) {
+    console.error('getPublicNgoCourse error:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Server error while fetching course',
+    });
+  }
+};
+
 // @desc    Get course progress
 // @route   GET /api/ngo-lms/courses/:id/progress
 // @access  Private
