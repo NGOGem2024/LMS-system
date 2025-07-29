@@ -61,6 +61,7 @@ app.get('/', (req, res) => {
 app.use(protect);
 
 // Protected routes
+app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/tenants', require('./src/routes/tenants'));
 app.use('/api/courses', require('./src/routes/courses'));
 app.use('/api/assignments', require('./src/routes/assignments'));

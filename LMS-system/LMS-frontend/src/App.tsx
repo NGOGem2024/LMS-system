@@ -114,16 +114,19 @@ function App() {
                 <Layout toggleDarkMode={toggleDarkMode} darkMode={darkMode} />
               </ProtectedRoute>
             }>
-              <Route index element={<Dashboard />} />
-              
+              {/* <Route index element={<Dashboard />} /> */}
+              <Route index element={<Dashboard darkMode={darkMode} />} />
               <Route path="courses" element={<Courses />} />
               <Route path="courses/add" element={<AddCourse />} />
               <Route path="courses/:id" element={<CourseDetails />} />
 
               {/* Test Course */}
-              <Route path="coursestest" element={<CoursesTest />} />
+              {/* <Route path="coursestest" element={<CoursesTest />} /> */}
+              <Route path="coursestest" element={<CoursesTest darkMode={darkMode} />} />
+              <Route path="profile" element={<Profile darkMode={darkMode} />} />
+              <Route path="coursestest/update/:id" element={<UpdateCourse darkMode={darkMode} />} />
               <Route path="coursestest/add" element={<AddCourseTest/>} />
-              <Route path="coursestest/update/:id" element={<UpdateCourse/>} />
+              {/* <Route path="coursestest/update/:id" element={<UpdateCourse/>} /> */}
 
               <Route path="assignments" element={<Assignments />} />
               <Route path="assignments/create" element={<CreateAssignment />} />
@@ -133,7 +136,7 @@ function App() {
               <Route path="quizzes" element={<Quizzes />} />
               <Route path="quizzes/:id" element={<QuizAttempt />} />
               <Route path="courses/:courseId/quizzes" element={<Quizzes />} />
-              <Route path="profile" element={<Profile />} />
+              {/* <Route path="profile" element={<Profile />} /> */}
               
               {/* Admin routes */}
               <Route path="admin" element={<AdminDashboard />} />

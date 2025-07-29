@@ -1,65 +1,20 @@
 import { useState, useEffect, useContext } from 'react'
-import { Link as RouterLink } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  CardMedia,
-  Typography,
-  Button,
-  Box,
-  TextField,
-  InputAdornment,
-  Chip,
-  Pagination,
-  Alert,
-  CardActions,
-  Fab,
-  LinearProgress,
-  Avatar,
-  Divider,
-  Stack,
-  IconButton,
-  Tooltip,
-  Paper,
-  Breadcrumbs,
-  Link,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  CircularProgress,
-  Snackbar
-} from '@mui/material'
-import {
-  Search as SearchIcon,
-  School as SchoolIcon,
-  Add as AddIcon,
-  Person as PersonIcon,
-  AccessTime as TimeIcon,
-  MonetizationOn as PriceIcon,
-  Groups as GroupsIcon,
-  BookmarkBorder as BookmarkIcon,
-  PlayArrow as PlayIcon,
-  FilterList as FilterIcon,
-  Home as HomeIcon,
-  Sort as SortIcon,
-  Close as CloseIcon,
-  VideoLibrary as ModuleIcon,
-  CheckCircle as CompletedIcon,
-  AddCircle as AddModuleIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon
-} from '@mui/icons-material'
+import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import AuthContext from '../../context/AuthContext'
-import { CourseGridSkeleton, PageLoading } from '../ui/LoadingComponents'
+import {
+  AcademicCapIcon,
+  ArrowPathIcon,
+  CheckCircleIcon,
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
+  XMarkIcon,
+  MagnifyingGlassIcon,
+  ArrowsUpDownIcon,
+  VideoCameraIcon
+} from '@heroicons/react/24/outline'
 
 interface Course {
   _id: string
@@ -118,8 +73,46 @@ interface ModulesResponse {
   data: Module[]
 }
 
-const CoursesTest = () => {
-  const { user } = useContext(AuthContext);
+const Courses = ({ darkMode }: { darkMode: boolean }) => {
+  const themeClasses = {
+    bg: darkMode ? 'bg-gray-900' : 'bg-gray-50',
+    cardBg: darkMode ? 'bg-white/5 backdrop-blur-sm' : 'bg-white shadow-sm',
+    cardHover: darkMode ? 'bg-white/5 backdrop-blur-sm' : 'bg-white shadow-lg',
+    border: darkMode ? 'border-white/10' : 'border-gray-200',
+    text: darkMode ? 'text-white' : 'text-gray-900',
+    textSecondary: darkMode ? 'text-gray-400' : 'text-gray-600',
+    textMuted: darkMode ? 'text-gray-400' : 'text-gray-500',
+    textAccent: darkMode ? 'text-blue-400' : 'text-blue-600',
+    hoverBg: darkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+    buttonText: darkMode ? 'text-white' : 'text-gray-900',
+    skeletonBg: darkMode ? 'bg-white/10' : 'bg-gray-200',
+    inputBg: darkMode ? 'bg-gray-700' : 'bg-white',
+    input: darkMode 
+      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500',
+    button: darkMode
+      ? 'border-white/10 text-white hover:bg-white/5'
+      : 'border-gray-300 text-gray-700 hover:bg-gray-50',
+    dialogBg: darkMode ? 'bg-gray-800' : 'bg-white',
+    dialogBorder: darkMode ? 'border-gray-700' : 'border-gray-200',
+    overlay: darkMode ? 'bg-black/50' : 'bg-gray-900/50',
+    gradientBg: darkMode 
+      ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20' 
+      : 'bg-gradient-to-r from-blue-100 to-purple-100',
+    notification: {
+      success: darkMode 
+        ? 'bg-green-500/10 border-green-500/20 text-green-400'
+        : 'bg-green-50 border-green-200 text-green-700',
+      error: darkMode 
+        ? 'bg-red-500/10 border-red-500/20 text-red-400'
+        : 'bg-red-50 border-red-200 text-red-700',
+      info: darkMode 
+        ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+        : 'bg-blue-50 border-blue-200 text-blue-700'
+    }
+  };
+
+  const { user } = useContext(AuthContext)
   const [courses, setCourses] = useState<Course[]>([])
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
@@ -152,14 +145,15 @@ const CoursesTest = () => {
   const [editing, setEditing] = useState(false)
   
   // Success/error notifications
-  const [snackbar, setSnackbar] = useState({
+  const [notification, setNotification] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error' | 'info'
+    type: 'success' as 'success' | 'error' | 'info'
   })
-  const navigate = useNavigate();
   
-  // New module form state - updated to match API structure
+  const navigate = useNavigate()
+  
+  // New module form state
   const [newModule, setNewModule] = useState({
     title: '',
     description: '',
@@ -278,7 +272,6 @@ const CoursesTest = () => {
     setAddingModule(true)
     
     try {
-      // Convert duration to number and prepare payload according to API structure
       const modulePayload = {
         title: newModule.title,
         description: newModule.description,
@@ -294,17 +287,13 @@ const CoursesTest = () => {
       )
       
       if (res.data.success) {
-        // Show success message
-        setSnackbar({
+        setNotification({
           open: true,
           message: 'Module added successfully!',
-          severity: 'success'
+          type: 'success'
         })
         
-        // Refresh modules list
         fetchModules(selectedCourse._id)
-        
-        // Close dialog and reset form
         setOpenAddModuleDialog(false)
         setNewModule({
           title: '',
@@ -328,10 +317,10 @@ const CoursesTest = () => {
         errorMessage = err.message
       }
       
-      setSnackbar({
+      setNotification({
         open: true,
         message: errorMessage,
-        severity: 'error'
+        type: 'error'
       })
       
       setModulesError(errorMessage)
@@ -374,10 +363,10 @@ const CoursesTest = () => {
       )
       
       if (res.data.success) {
-        setSnackbar({
+        setNotification({
           open: true,
           message: 'Module updated successfully!',
-          severity: 'success'
+          type: 'success'
         })
         
         fetchModules(selectedCourse._id)
@@ -388,10 +377,10 @@ const CoursesTest = () => {
       }
     } catch (err: any) {
       console.error('Failed to update module:', err)
-      setSnackbar({
+      setNotification({
         open: true,
         message: err.response?.data?.message || 'Failed to update module',
-        severity: 'error'
+        type: 'error'
       })
     } finally {
       setEditingModule(false)
@@ -412,10 +401,10 @@ const CoursesTest = () => {
       )
       
       if (res.data.success) {
-        setSnackbar({
+        setNotification({
           open: true,
           message: 'Module deleted successfully!',
-          severity: 'success'
+          type: 'success'
         })
         
         fetchModules(selectedCourse._id)
@@ -424,10 +413,10 @@ const CoursesTest = () => {
       }
     } catch (err: any) {
       console.error('Failed to delete module:', err)
-      setSnackbar({
+      setNotification({
         open: true,
         message: err.response?.data?.message || 'Failed to delete module',
-        severity: 'error'
+        type: 'error'
       })
     } finally {
       setDeletingModule(false)
@@ -450,20 +439,20 @@ const CoursesTest = () => {
       )
       
       if (response.data.success) {
-        setSnackbar({
+        setNotification({
           open: true,
           message: 'Course deleted successfully!',
-          severity: 'success'
+          type: 'success'
         })
         setCourses(courses.filter(course => course._id !== courseToDelete._id))
         setFilteredCourses(filteredCourses.filter(course => course._id !== courseToDelete._id))
       }
     } catch (err: any) {
       console.error('Failed to delete course:', err)
-      setSnackbar({
+      setNotification({
         open: true,
         message: 'Failed to delete course. Please try again.',
-        severity: 'error'
+        type: 'error'
       })
     } finally {
       setDeleting(false)
@@ -474,11 +463,11 @@ const CoursesTest = () => {
 
   const handleEditCourse = (course: Course) => {
     setCourseToEdit(course)
-    navigate(`/coursestest/update/${course._id}`);
+    navigate(`/coursestest/update/${course._id}`)
   }
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false })
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false })
   }
 
   const handleEnroll = async (courseId: string) => {
@@ -496,7 +485,7 @@ const CoursesTest = () => {
     }
   }
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handlePageChange = (value: number) => {
     setPage(value)
   }
 
@@ -528,837 +517,658 @@ const CoursesTest = () => {
            parseInt(newModule.duration) > 0
   }
 
-  if (loading) {
-    return (
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        <PageLoading />
-        <Box sx={{ mb: 4, pt: 2 }}>
-          <Typography variant="h4" component="h1" sx={{ opacity: 0.5 }}>
-            Courses
-          </Typography>
-        </Box>
-        <CourseGridSkeleton count={9} />
-      </Container>
-    )
-  }
-
   return (
-    <Box sx={{ minHeight: '100vh' }}>
-      <Container maxWidth="xl" sx={{ py: 0 }}>
+    <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text}`}>
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          mb: 2,
-          flexWrap: 'wrap',
-          gap: 2
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ 
-              bgcolor: 'primary.main', 
-              width: 40, 
-              height: 40,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
-              <SchoolIcon sx={{ fontSize: 28 }} />
-            </Avatar>
-            <Box>
-              <Typography variant="h5" component="h1" fontWeight="bold">
-                Course Catalog Test
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {totalRecords} courses available
-              </Typography>
-            </Box>
-          </Box>
+        <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+              <AcademicCapIcon className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className={`text-2xl md:text-3xl font-bold ${themeClasses.text}`}>Course Catalog</h1>
+              <p className={themeClasses.textMuted}>{totalRecords} courses available</p>
+            </div>
+          </div>
           
-          {user && (user.role === 'instructor' || user.role === 'admin') && (
-            <Button
-              component={RouterLink}
-              to="/coursestest/add"
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{
-                borderRadius: 2,
-                boxShadow: 'none',
-                '&:hover': {
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-                }
-              }}
-            >
-              Create Course
-            </Button>
-          )}
-        </Box>
-
-        {/* Search and Filter Section */}
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            mb: 4, 
-            borderRadius: 25,
-            border: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'background.paper'
-          }}
-         >
-          <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder="Search courses by title, description, or slug..."
+          <div className="flex gap-3 w-full md:w-auto">
+            <div className={`relative flex-1 md:w-64 ${themeClasses.inputBg} rounded-lg`}>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className={`h-5 w-5 ${themeClasses.textMuted}`} />
+              </div>
+              <input
+                type="text"
+                placeholder="Search courses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    bgcolor: 'background.default'
-                  }
-                }}
+                className={`pl-10 pr-4 py-2 w-full rounded-lg border ${themeClasses.input}`}
               />
-              
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ 
-                display: 'flex', 
-                gap: 2, 
-                justifyContent: { xs: 'flex-start', md: 'flex-end' },
-                alignItems: 'center'
-              }}>
-                <Button
-                  variant={sortByLevel ? "contained" : "outlined"}
-                  startIcon={<SortIcon />}
-                  onClick={handleFilterToggle}
-                  sx={{ 
-                    borderRadius: 2,
-                    minWidth: 140,
-                    transition: 'all 0.2s ease',
-                    ...(sortByLevel && {
-                      boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)'
-                    })
-                  }}
-                >
-                  {sortByLevel ? 'By Date ✓' : 'Sort by Date'}
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
+            </div>
+            <button
+              onClick={handleFilterToggle}
+              className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${themeClasses.button}`}
+            >
+              <ArrowsUpDownIcon className="h-5 w-5" />
+              <span>Sort</span>
+            </button>
+          </div>
+        </div>
 
         {/* Filter Status */}
         {sortByLevel && (
-          <Box sx={{ mb: 3 }}>
-            <Alert 
-              severity="info" 
-              sx={{ 
-                borderRadius: 2,
-                '& .MuiAlert-message': {
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1
-                }
-              }}
-            >
-              <SortIcon fontSize="small" />
-              Courses sorted by creation date (oldest first)
-            </Alert>
-          </Box>
+          <div className={`mb-6 border rounded-lg p-4 flex items-center gap-2 ${themeClasses.notification.info}`}>
+            <ArrowsUpDownIcon className="h-5 w-5" />
+            <span>Courses sorted by creation date (oldest first)</span>
+          </div>
         )}
 
         {/* Error Alert */}
         {error && (
-          <Alert 
-            severity="error" 
-            sx={{ mb: 3, borderRadius: 2 }}
-            action={
-              <Button 
-                color="inherit" 
-                size="small"
-                onClick={() => {
-                  setLoading(true);
-                  setError(null);
-                  setTimeout(() => {
-                    const fetchCourses = async () => {
-                      try {
-                        const res = await axios.get<CoursesResponse>('/api/ngo-lms/courses', {
-                          timeout: 15000
-                        });
-                        if (res.data.success) {
-                          setCourses(res.data.data);
-                          setFilteredCourses(res.data.data);
-                          setTotalRecords(res.data.pagination.totalCount);
-                          setTotalPages(res.data.pagination.totalPages);
-                          setPage(res.data.pagination.currentPage);
-                        }
-                      } catch (err: any) {
-                        console.error('Retry failed:', err);
-                        setError('Retry failed. Please try again later.');
-                      } finally {
-                        setLoading(false);
+          <div className={`mb-6 border rounded-lg p-4 flex justify-between items-center ${themeClasses.notification.error}`}>
+            <div className="flex items-center gap-2">
+              <span>{error}</span>
+            </div>
+            <button 
+              className={`hover:opacity-70 ${themeClasses.text}`}
+              onClick={() => {
+                setLoading(true)
+                setError(null)
+                setTimeout(() => {
+                  const fetchCourses = async () => {
+                    try {
+                      const res = await axios.get<CoursesResponse>('/api/ngo-lms/courses', {
+                        timeout: 15000
+                      })
+                      if (res.data.success) {
+                        setCourses(res.data.data)
+                        setFilteredCourses(res.data.data)
+                        setTotalRecords(res.data.pagination.totalCount)
+                        setTotalPages(res.data.pagination.totalPages)
+                        setPage(res.data.pagination.currentPage)
                       }
-                    };
-                    fetchCourses();
-                  }, 1000);
-                }}
+                    } catch (err: any) {
+                      console.error('Retry failed:', err)
+                      setError('Retry failed. Please try again later.')
+                    } finally {
+                      setLoading(false)
+                    }
+                  }
+                  fetchCourses()
+                }, 1000)
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className={`${themeClasses.cardBg} rounded-lg overflow-hidden animate-pulse border ${themeClasses.border}`}>
+                <div className={`h-48 ${themeClasses.skeletonBg}`}></div>
+                <div className="p-6 space-y-4">
+                  <div className={`h-6 ${themeClasses.skeletonBg} rounded w-3/4`}></div>
+                  <div className={`h-4 ${themeClasses.skeletonBg} rounded w-full`}></div>
+                  <div className={`h-4 ${themeClasses.skeletonBg} rounded w-5/6`}></div>
+                  <div className={`h-4 ${themeClasses.skeletonBg} rounded w-2/3`}></div>
+                  <div className={`h-10 ${themeClasses.skeletonBg} rounded mt-6`}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && filteredCourses.length === 0 && (
+          <div className={`${themeClasses.cardBg} rounded-xl p-12 text-center border border-dashed ${themeClasses.border}`}>
+            <AcademicCapIcon className={`h-16 w-16 mx-auto mb-4 ${themeClasses.textMuted}`} />
+            <h3 className={`text-xl font-medium mb-2 ${themeClasses.text}`}>
+              No courses found
+            </h3>
+            <p className={`mb-6 ${themeClasses.textMuted}`}>
+              {searchTerm ? 'Try adjusting your search query' : 'There are currently no courses available'}
+            </p>
+            {user && (user.role === 'instructor' || user.role === 'admin') && (
+              <Link
+                to="/coursestest/add"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-md hover:from-blue-600 hover:to-purple-600 transition-all"
               >
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Create Your First Course
+              </Link>
+            )}
+          </div>
         )}
 
         {/* Course Grid */}
-        {filteredCourses.length === 0 ? (
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 8, 
-              textAlign: 'center', 
-              borderRadius: 3,
-              border: '1px dashed',
-              borderColor: 'divider'
-            }}
-          >
-            <SchoolIcon sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
-            <Typography variant="h5" color="text.secondary" gutterBottom>
-              No courses found
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              {searchTerm ? 'Try adjusting your search query' : 'There are currently no courses available'}
-            </Typography>
-            {user && (user.role === 'instructor' || user.role === 'admin') && (
-              <Button
-                component={RouterLink}
-                to="/courses/add"
-                variant="contained"
-                size="large"
-                startIcon={<AddIcon />}
-                sx={{ borderRadius: 2 }}
-              >
-                Create Your First Course
-              </Button>
-            )}
-          </Paper>
-         ) : (
+        {!loading && filteredCourses.length > 0 && (
           <>
-            <Grid container spacing={3}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedCourses.map((course) => (
-                <Grid item key={course._id} xs={12} sm={6} md={4}>
-                  <Card 
-                    sx={{ 
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      borderRadius: 1,
-                      transition: 'all 0.2s ease-in-out',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: 2
-                      },
-                    }}
-                  >
-                    {/* Course Actions (Edit/Delete) - Only for instructors/admins */}
-                    {user && (user.role === 'instructor' || user.role === 'admin') && (
-                      <Box sx={{ 
-                        position: 'absolute', 
-                        top: 8, 
-                        right: 8,
-                        display: 'flex',
-                        gap: 1,
-                        zIndex: 1
-                      }}>
-                        <Tooltip title="Edit course">
-                          <IconButton
-                            size="small"
+                <div 
+                  key={course._id}
+                  className={`${themeClasses.cardBg} rounded-lg overflow-hidden border ${themeClasses.border} transition-all hover:shadow-lg hover:-translate-y-1`}
+                >
+                  {/* Course Image/Icon Placeholder */}
+                  <div className={`h-48 ${themeClasses.gradientBg} flex items-center justify-center`}>
+                    <AcademicCapIcon className={`h-16 w-16 opacity-50 ${darkMode ? 'text-white' : 'text-blue-600'}`} />
+                  </div>
+                  
+                  {/* Course Content */}
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className={`text-xl font-bold line-clamp-2 ${themeClasses.text}`}>{course.title}</h3>
+                      {user && (user.role === 'instructor' || user.role === 'admin') && (
+                        <div className="flex gap-2">
+                          <button 
                             onClick={() => handleEditCourse(course)}
-                            sx={{
-                              backgroundColor: 'background.paper',
-                              '&:hover': {
-                                backgroundColor: 'primary.light',
-                                color: 'primary.contrastText'
-                              }
-                            }}
+                            className={`p-1 rounded-md transition-colors ${themeClasses.hoverBg}`}
                           >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete course">
-                          <IconButton
-                            size="small"
+                            <PencilIcon className={`h-5 w-5 ${themeClasses.textAccent}`} />
+                          </button>
+                          <button 
                             onClick={() => handleDeleteCourse(course)}
-                            sx={{
-                              backgroundColor: 'background.paper',
-                              '&:hover': {
-                                backgroundColor: 'error.light',
-                                color: 'error.contrastText'
-                              }
-                            }}
+                            className={`p-1 rounded-md transition-colors ${themeClasses.hoverBg}`}
                           >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    )}
-
-                    <CardContent sx={{ flexGrow: 1, p: 2 }}>
-                      <Box sx={{ mb: 2 }}>
-                        <Typography 
-                          variant="h6" 
-                          component="h3" 
-                          fontWeight="bold" 
-                          sx={{ 
-                            mb: 1,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            minHeight: '3em'
-                          }}
+                            <TrashIcon className="h-5 w-5 text-red-400" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <p className={`line-clamp-3 mb-4 ${themeClasses.textMuted}`}>{course.description}</p>
+                    
+                    <div className="flex justify-between items-center mb-4">
+                      <span className={`text-sm ${themeClasses.textMuted}`}>
+                        Created: {formatDate(course.createdAt)}
+                      </span>
+                      <span className={`text-lg font-bold ${
+                        course.price !== undefined ? themeClasses.textAccent : 'text-green-500'
+                      }`}>
+                        {course.price !== undefined ? `$${course.price.toFixed(2)}` : 'Free'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={course.progress ? 
+                          () => window.location.href = `/courses/${course.slug || course._id}` : 
+                          () => handleEnroll(course._id)
+                        }
+                        className={`flex-1 py-2 px-4 rounded-md transition-all ${
+                          course.progress 
+                            ? `border ${themeClasses.textAccent} ${themeClasses.hoverBg}`
+                            : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
+                        }`}
+                      >
+                        {course.progress ? 'Continue' : 'Start Course'}
+                      </button>
+                      
+                      {user && (user.role === 'instructor' || user.role === 'admin') && (
+                        <button
+                          onClick={() => handleViewModules(course)}
+                          className={`p-2 border rounded-md transition-colors ${themeClasses.border} ${themeClasses.hoverBg}`}
                         >
-                          {course.title}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.5,
-                            minHeight: '4.5em'
-                          }}
-                        >
-                          {course.description}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Created: {formatDate(course.createdAt)}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        mb: 2
-                      }}>
-                        {course.price !== undefined ? (
-                          <Typography variant="h6" color="primary.main" fontWeight="bold">
-                            ${course.price.toFixed(2)}
-                          </Typography>
-                        ) : (
-                          <Typography variant="h6" color="success.main" fontWeight="bold">
-                            Free
-                          </Typography>
-                        )}
-                      </Box>
-                    </CardContent>
-
-                    <CardActions sx={{ p: 2, pt: 0 }}>
-                      <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-                        <Button 
-                          variant={course.progress ? "outlined" : "contained"}
-                          size="medium"
-                          startIcon={course.progress ? <PlayIcon /> : <SchoolIcon />}
-                          onClick={course.progress ? 
-                            () => window.location.href = `/courses/${course.slug || course._id}` : 
-                            () => handleEnroll(course._id)
-                          }
-                          sx={{ 
-                            py: 1,
-                            fontWeight: 600,
-                            flexGrow: 1
-                          }}
-                        >
-                          {course.progress ? 'Continue' : 'Start Course'}
-                        </Button>
-                        
-                        {user && (user.role === 'instructor' || user.role === 'admin') && (
-                          <Button
-                            variant="outlined"
-                            size="medium"
-                            onClick={() => handleViewModules(course)}
-                            sx={{
-                              minWidth: 'auto',
-                              px: 1
-                            }}
-                          >
-                            <ModuleIcon fontSize="small" />
-                          </Button>
-                        )}
-                      </Box>
-                    </CardActions>
-                  </Card>
-                </Grid>
+                          <PlusIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </Grid>
+            </div>
 
             {/* Pagination */}
-            {totalPages >= 1 && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
-                <Pagination 
-                  count={totalPages} 
-                  page={page} 
-                  onChange={handlePageChange} 
-                  color="primary"
-                  size="large"
-                  sx={{
-                    '& .MuiPaginationItem-root': {
-                      borderRadius: 1
-                    }
-                  }}
-                />
-              </Box>
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`w-10 h-10 rounded-md flex items-center justify-center ${
+                        page === pageNum
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                          : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.hoverBg}`
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </>
         )}
+      </div>
 
-        {/* Modules Dialog */}
-        <Dialog 
-          open={openModulesDialog} 
-          onClose={() => setOpenModulesDialog(false)}
-          fullWidth
-          maxWidth="sm"
-        >
-          <DialogTitle>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h6">
-                {selectedCourse?.title} - Modules
-              </Typography>
-              <IconButton onClick={() => setOpenModulesDialog(false)}>
-                <CloseIcon />
-              </IconButton>
-            </Box>
-          </DialogTitle>
-          <DialogContent dividers>
-            {modulesLoading ? (
-              <Box display="flex" justifyContent="center" py={4}>
-                <CircularProgress />
-              </Box>
-            ) : modulesError ? (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {modulesError}
-              </Alert>
-            ) : modules.length === 0 ? (
-              <Box textAlign="center" py={4}>
-                <Typography variant="body1" color="text.secondary">
-                  No modules found for this course
-                </Typography>
-              </Box>
-            ) : (
-              <List>
-                {modules.map((module) => (
-                  <ListItem key={module._id} divider>
-                    <ListItemIcon>
-                      {module.isCompleted ? (
-                        <CompletedIcon color="success" />
-                      ) : (
-                        <ModuleIcon color="primary" />
-                      )}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={module.title}
-                      secondary={
-                        <>
-                          <Typography variant="body2" color="text.secondary">
-                            {module.description}
-                          </Typography>
-                          <Typography variant="caption" display="block">
-                            Duration: {module.duration} hours • Difficulty: {module.difficulty}
-                          </Typography>
-                        </>
-                      }
+      {/* Modules Dialog */}
+      {openModulesDialog && (
+        <div className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${themeClasses.overlay}`}>
+          <div className={`${themeClasses.dialogBg} rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden border ${themeClasses.dialogBorder}`}>
+            {/* Header */}
+            <div className={`p-6 border-b flex-shrink-0 ${themeClasses.dialogBorder}`}>
+              <div className="flex justify-between items-center">
+                <h2 className={`text-xl font-semibold ${themeClasses.text}`}>
+                  {selectedCourse?.title} - Modules
+                </h2>
+                <button 
+                  onClick={() => setOpenModulesDialog(false)}
+                  className={`p-2 rounded-md transition-colors ${themeClasses.hoverBg}`}
+                >
+                  <XMarkIcon className={`h-6 w-6 ${themeClasses.textMuted} hover:${themeClasses.text}`} />
+                </button>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6" style={{ maxHeight: 'calc(85vh - 180px)' }}>
+              {modulesLoading ? (
+                <div className="flex justify-center py-8">
+                  <ArrowPathIcon className="h-8 w-8 animate-spin text-blue-500" />
+                </div>
+              ) : modulesError ? (
+                <div className={`border rounded-lg p-4 mb-4 ${themeClasses.notification.error}`}>
+                  {modulesError}
+                </div>
+              ) : modules.length === 0 ? (
+                <div className={`text-center py-8 ${themeClasses.textMuted}`}>
+                  <AcademicCapIcon className="h-12 w-12 mx-auto mb-4" />
+                  <p>No modules available for this course yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {modules.map((module) => (
+                    <div 
+                      key={module._id}
+                      className={`p-4 rounded-lg border ${themeClasses.border} ${themeClasses.cardBg}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className={`font-medium ${themeClasses.text}`}>{module.title}</h3>
+                          <p className={`text-sm mt-1 ${themeClasses.textMuted}`}>{module.description}</p>
+                        </div>
+                        {user && (user.role === 'instructor' || user.role === 'admin') && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditModule(module)}
+                              className={`p-1 rounded-md ${themeClasses.hoverBg}`}
+                            >
+                              <PencilIcon className={`h-5 w-5 ${themeClasses.textAccent}`} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteModule(module)}
+                              className={`p-1 rounded-md ${themeClasses.hoverBg}`}
+                            >
+                              <TrashIcon className="h-5 w-5 text-red-400" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center mt-4 gap-4">
+                        {module.videoUrl && (
+                          <div className={`flex items-center text-sm ${themeClasses.textMuted}`}>
+                            <VideoCameraIcon className="h-4 w-4 mr-1" />
+                            <span>Video</span>
+                          </div>
+                        )}
+                        <div className={`text-sm ${themeClasses.textMuted}`}>
+                          Duration: {module.duration} mins
+                        </div>
+                        <div className={`text-sm ${themeClasses.textMuted}`}>
+                          Difficulty: {module.difficulty}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className={`p-4 border-t flex justify-end gap-3 ${themeClasses.dialogBorder}`}>
+              {user && (user.role === 'instructor' || user.role === 'admin') && (
+                <button
+                  onClick={handleAddModule}
+                  className={`px-4 py-2 rounded-md flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all`}
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  Add Module
+                </button>
+              )}
+              <button
+                onClick={() => setOpenModulesDialog(false)}
+                className={`px-4 py-2 rounded-md border ${themeClasses.button}`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Module Dialog */}
+      {openAddModuleDialog && (
+        <div className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${themeClasses.overlay}`}>
+          <div className={`${themeClasses.dialogBg} rounded-lg shadow-xl w-full max-w-md overflow-hidden border ${themeClasses.dialogBorder}`}>
+            <div className="p-6">
+              <h2 className={`text-xl font-semibold mb-6 ${themeClasses.text}`}>
+                Add New Module
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={newModule.title}
+                    onChange={(e) => setNewModule({...newModule, title: e.target.value})}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                    placeholder="Module title"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                    Description
+                  </label>
+                  <textarea
+                    value={newModule.description}
+                    onChange={(e) => setNewModule({...newModule, description: e.target.value})}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                    placeholder="Module description"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                      Duration (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={newModule.duration}
+                      onChange={(e) => setNewModule({...newModule, duration: e.target.value})}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                      placeholder="30"
                     />
-                    {user && (user.role === 'instructor' || user.role === 'admin') && (
-                      <Box sx={{ display: 'flex' }}>
-                        <Tooltip title="Edit module">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEditModule(module)}
-                            sx={{ mr: 1 }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete module">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteModule(module)}
-                            sx={{ color: 'error.main' }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    )}
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => setOpenModulesDialog(false)}
-              color="primary"
-            >
-              Close
-            </Button>
-            {user && (user.role === 'instructor' || user.role === 'admin') && (
-              <Button 
-                onClick={handleAddModule}
-                variant="contained"
-                startIcon={<AddModuleIcon />}
-              >
-                Add Module
-              </Button>
-            )}
-          </DialogActions>
-        </Dialog>
+                  </div>
+                  
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                      Difficulty
+                    </label>
+                    <select
+                      value={newModule.difficulty}
+                      onChange={(e) => setNewModule({...newModule, difficulty: e.target.value})}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                    Video URL
+                  </label>
+                  <input
+                    type="text"
+                    value={newModule.videoUrl}
+                    onChange={(e) => setNewModule({...newModule, videoUrl: e.target.value})}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                    placeholder="https://example.com/video.mp4"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setOpenAddModuleDialog(false)}
+                  className={`px-4 py-2 rounded-md border ${themeClasses.button}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddModuleSubmit}
+                  disabled={!isModuleFormValid() || addingModule}
+                  className={`px-4 py-2 rounded-md flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all ${
+                    (!isModuleFormValid() || addingModule) ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {addingModule ? (
+                    <>
+                      <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Module'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* Add Module Dialog */}
-        <Dialog 
-          open={openAddModuleDialog} 
-          onClose={() => setOpenAddModuleDialog(false)}
-          fullWidth
-          maxWidth="sm"
-        >
-          <DialogTitle>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h6">
-                Add New Module to {selectedCourse?.title}
-              </Typography>
-              <IconButton onClick={() => setOpenAddModuleDialog(false)}>
-                <CloseIcon />
-              </IconButton>
-            </Box>
-          </DialogTitle>
-          <DialogContent dividers>
-            <Box component="form" sx={{ pt: 2 }}>
-              <TextField
-                fullWidth
-                label="Module Title"
-                value={newModule.title}
-                onChange={(e) => setNewModule({...newModule, title: e.target.value})}
-                margin="normal"
-                required
-                error={!newModule.title.trim() && newModule.title !== ''}
-                helperText={!newModule.title.trim() && newModule.title !== '' ? 'Title is required' : ''}
-              />
-              <TextField
-                fullWidth
-                label="Description"
-                value={newModule.description}
-                onChange={(e) => setNewModule({...newModule, description: e.target.value})}
-                margin="normal"
-                multiline
-                rows={3}
-                required
-                error={!newModule.description.trim() && newModule.description !== ''}
-                helperText={!newModule.description.trim() && newModule.description !== '' ? 'Description is required' : ''}
-              />
-              <TextField
-                fullWidth
-                label="Duration (hours)"
-                type="number"
-                value={newModule.duration}
-                onChange={(e) => setNewModule({...newModule, duration: e.target.value})}
-                margin="normal"
-                required
-                inputProps={{ min: 1, step: 0.5 }}
-                error={!newModule.duration || isNaN(parseInt(newModule.duration)) || parseInt(newModule.duration) <= 0}
-                helperText={
-                  !newModule.duration ? 'Duration is required' :
-                  isNaN(parseInt(newModule.duration)) || parseInt(newModule.duration) <= 0 ? 'Duration must be a positive number' : ''
-                }
-              />
-              <TextField
-                fullWidth
-                label="Video URL"
-                value={newModule.videoUrl}
-                onChange={(e) => setNewModule({...newModule, videoUrl: e.target.value})}
-                margin="normal"
-                required
-                error={!newModule.videoUrl.trim() && newModule.videoUrl !== ''}
-                helperText={!newModule.videoUrl.trim() && newModule.videoUrl !== '' ? 'Video URL is required' : ''}
-              />
-              <TextField
-                fullWidth
-                select
-                label="Difficulty"
-                value={newModule.difficulty}
-                onChange={(e) => setNewModule({...newModule, difficulty: e.target.value})}
-                margin="normal"
-                SelectProps={{
-                  native: true,
-                }}
-              >
-                {['Beginner', 'Intermediate', 'Advanced'].map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </TextField>
-              <TextField
-                fullWidth
-                label="Rating"
-                type="number"
-                value={newModule.rating}
-                onChange={(e) => setNewModule({...newModule, rating: parseFloat(e.target.value) || 4.5})}
-                margin="normal"
-                inputProps={{ min: 1, max: 5, step: 0.1 }}
-                helperText="Rating between 1.0 and 5.0"
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => setOpenAddModuleDialog(false)}
-              color="primary"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAddModuleSubmit}
-              variant="contained"
-              disabled={!isModuleFormValid() || addingModule}
-              startIcon={addingModule ? <CircularProgress size={20} /> : null}
-            >
-              {addingModule ? 'Adding...' : 'Add Module'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+      {/* Edit Module Dialog */}
+      {openEditModuleDialog && (
+        <div className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${themeClasses.overlay}`}>
+          <div className={`${themeClasses.dialogBg} rounded-lg shadow-xl w-full max-w-md overflow-hidden border ${themeClasses.dialogBorder}`}>
+            <div className="p-6">
+              <h2 className={`text-xl font-semibold mb-6 ${themeClasses.text}`}>
+                Edit Module
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={newModule.title}
+                    onChange={(e) => setNewModule({...newModule, title: e.target.value})}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                    placeholder="Module title"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                    Description
+                  </label>
+                  <textarea
+                    value={newModule.description}
+                    onChange={(e) => setNewModule({...newModule, description: e.target.value})}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                    placeholder="Module description"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                      Duration (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={newModule.duration}
+                      onChange={(e) => setNewModule({...newModule, duration: e.target.value})}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                      placeholder="30"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                      Difficulty
+                    </label>
+                    <select
+                      value={newModule.difficulty}
+                      onChange={(e) => setNewModule({...newModule, difficulty: e.target.value})}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${themeClasses.text}`}>
+                    Video URL
+                  </label>
+                  <input
+                    type="text"
+                    value={newModule.videoUrl}
+                    onChange={(e) => setNewModule({...newModule, videoUrl: e.target.value})}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
+                    placeholder="https://example.com/video.mp4"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setOpenEditModuleDialog(false)}
+                  className={`px-4 py-2 rounded-md border ${themeClasses.button}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateModule}
+                  disabled={!isModuleFormValid() || editingModule}
+                  className={`px-4 py-2 rounded-md flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all ${
+                    (!isModuleFormValid() || editingModule) ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {editingModule ? (
+                    <>
+                      <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Module'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* Edit Module Dialog */}
-        <Dialog 
-          open={openEditModuleDialog} 
-          onClose={() => setOpenEditModuleDialog(false)}
-          fullWidth
-          maxWidth="sm"
-        >
-          <DialogTitle>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h6">
-                Edit Module: {moduleToEdit?.title}
-              </Typography>
-              <IconButton onClick={() => setOpenEditModuleDialog(false)}>
-                <CloseIcon />
-              </IconButton>
-            </Box>
-          </DialogTitle>
-          <DialogContent dividers>
-            <Box component="form" sx={{ pt: 2 }}>
-              <TextField
-                fullWidth
-                label="Module Title"
-                value={newModule.title}
-                onChange={(e) => setNewModule({...newModule, title: e.target.value})}
-                margin="normal"
-                required
-                error={!newModule.title.trim() && newModule.title !== ''}
-                helperText={!newModule.title.trim() && newModule.title !== '' ? 'Title is required' : ''}
-              />
-              <TextField
-                fullWidth
-                label="Description"
-                value={newModule.description}
-                onChange={(e) => setNewModule({...newModule, description: e.target.value})}
-                margin="normal"
-                multiline
-                rows={3}
-                required
-                error={!newModule.description.trim() && newModule.description !== ''}
-                helperText={!newModule.description.trim() && newModule.description !== '' ? 'Description is required' : ''}
-              />
-              <TextField
-                fullWidth
-                label="Duration (hours)"
-                type="number"
-                value={newModule.duration}
-                onChange={(e) => setNewModule({...newModule, duration: e.target.value})}
-                margin="normal"
-                required
-                inputProps={{ min: 1, step: 0.5 }}
-                error={!newModule.duration || isNaN(parseInt(newModule.duration)) || parseInt(newModule.duration) <= 0}
-                helperText={
-                  !newModule.duration ? 'Duration is required' :
-                  isNaN(parseInt(newModule.duration)) || parseInt(newModule.duration) <= 0 ? 'Duration must be a positive number' : ''
-                }
-              />
-              <TextField
-                fullWidth
-                label="Video URL"
-                value={newModule.videoUrl}
-                onChange={(e) => setNewModule({...newModule, videoUrl: e.target.value})}
-                margin="normal"
-                required
-                error={!newModule.videoUrl.trim() && newModule.videoUrl !== ''}
-                helperText={!newModule.videoUrl.trim() && newModule.videoUrl !== '' ? 'Video URL is required' : ''}
-              />
-              <TextField
-                fullWidth
-                select
-                label="Difficulty"
-                value={newModule.difficulty}
-                onChange={(e) => setNewModule({...newModule, difficulty: e.target.value})}
-                margin="normal"
-                SelectProps={{
-                  native: true,
-                }}
-              >
-                {['Beginner', 'Intermediate', 'Advanced'].map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </TextField>
-              <TextField
-                fullWidth
-                label="Rating"
-                type="number"
-                value={newModule.rating}
-                onChange={(e) => setNewModule({...newModule, rating: parseFloat(e.target.value) || 4.5})}
-                margin="normal"
-                inputProps={{ min: 1, max: 5, step: 0.1 }}
-                helperText="Rating between 1.0 and 5.0"
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => setOpenEditModuleDialog(false)}
-              color="primary"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleUpdateModule}
-              variant="contained"
-              disabled={!isModuleFormValid() || editingModule}
-              startIcon={editingModule ? <CircularProgress size={20} /> : null}
-            >
-              {editingModule ? 'Updating...' : 'Update Module'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+      {/* Delete Module Confirmation */}
+      {moduleToDelete && (
+        <div className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${themeClasses.overlay}`}>
+          <div className={`${themeClasses.dialogBg} rounded-lg shadow-xl w-full max-w-md overflow-hidden border ${themeClasses.dialogBorder}`}>
+            <div className="p-6">
+              <h2 className={`text-xl font-semibold mb-4 ${themeClasses.text}`}>
+                Delete Module
+              </h2>
+              <p className={`mb-6 ${themeClasses.textMuted}`}>
+                Are you sure you want to delete the module "{moduleToDelete.title}"? This action cannot be undone.
+              </p>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setModuleToDelete(null)}
+                  className={`px-4 py-2 rounded-md border ${themeClasses.button}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteModule}
+                  disabled={deletingModule}
+                  className={`px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 transition-all ${
+                    deletingModule ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {deletingModule ? (
+                    <>
+                      <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Module'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* Delete Module Confirmation Dialog */}
-        <Dialog
-          open={!!moduleToDelete}
-          onClose={() => setModuleToDelete(null)}
-          maxWidth="xs"
-          fullWidth
-        >
-          <DialogTitle>Confirm Delete</DialogTitle>
-          <DialogContent>
-            <Typography variant="body1">
-              Are you sure you want to delete the module "{moduleToDelete?.title}"? This action cannot be undone.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => setModuleToDelete(null)}
-              color="primary"
-              disabled={deletingModule}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmDeleteModule}
-              color="error"
-              variant="contained"
-              disabled={deletingModule}
-              startIcon={deletingModule ? <CircularProgress size={20} /> : null}
-            >
-              {deletingModule ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+      {/* Delete Course Confirmation */}
+      {openDeleteDialog && (
+        <div className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${themeClasses.overlay}`}>
+          <div className={`${themeClasses.dialogBg} rounded-lg shadow-xl w-full max-w-md overflow-hidden border ${themeClasses.dialogBorder}`}>
+            <div className="p-6">
+              <h2 className={`text-xl font-semibold mb-4 ${themeClasses.text}`}>
+                Delete Course
+              </h2>
+              <p className={`mb-6 ${themeClasses.textMuted}`}>
+                Are you sure you want to delete the course "{courseToDelete?.title}"? This will also delete all associated modules and cannot be undone.
+              </p>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setOpenDeleteDialog(false)}
+                  className={`px-4 py-2 rounded-md border ${themeClasses.button}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteCourse}
+                  disabled={deleting}
+                  className={`px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 transition-all ${
+                    deleting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {deleting ? (
+                    <>
+                      <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Course'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* Delete Course Confirmation Dialog */}
-        <Dialog
-          open={openDeleteDialog}
-          onClose={() => setOpenDeleteDialog(false)}
-          maxWidth="xs"
-          fullWidth
-        >
-          <DialogTitle>Confirm Delete</DialogTitle>
-          <DialogContent>
-            <Typography variant="body1">
-              Are you sure you want to delete the course "{courseToDelete?.title}"? This action cannot be undone.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => setOpenDeleteDialog(false)}
-              color="primary"
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmDeleteCourse}
-              color="error"
-              variant="contained"
-              disabled={deleting}
-              startIcon={deleting ? <CircularProgress size={20} /> : null}
-            >
-              {deleting ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Snackbar for notifications */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          <Alert 
-            onClose={handleCloseSnackbar} 
-            severity={snackbar.severity}
-            sx={{ width: '100%' }}
+      {/* Notification */}
+      {notification.open && (
+        <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg border flex items-center gap-3 ${themeClasses.notification[notification.type]}`}>
+          {notification.type === 'success' && (
+            <CheckCircleIcon className="h-6 w-6" />
+          )}
+          <span>{notification.message}</span>
+          <button 
+            onClick={handleCloseNotification}
+            className="p-1 rounded-full hover:bg-white/10"
           >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-
-        {/* Floating Action Button */}
-        {user && (user.role === 'instructor' || user.role === 'admin') && (
-          <Fab
-            color="primary"
-            aria-label="add"
-            component={RouterLink}
-            to="/courses/add"
-            sx={{
-              position: 'fixed',
-              bottom: 32,
-              right: 32,
-              display: { xs: 'flex', md: 'none' },
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-            }}
-          >
-            <AddIcon />
-          </Fab>
-        )}
-      </Container>
-    </Box>
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
-export default CoursesTest
+export default Courses
