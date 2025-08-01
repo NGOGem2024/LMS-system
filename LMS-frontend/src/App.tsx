@@ -16,6 +16,7 @@ import Dashboard from './components/dashboard/Dashboard'
 // Course components
 import Courses from './components/courses/Courses'
 import CurriculumForm from './components/courses/CurriculumForm'
+import EditCurriculum from './components/courses/EditCurriculum';
 
 // Assignment components
 import Assignments from './components/assignments/Assignments'
@@ -64,8 +65,10 @@ function App() {
     // Toggle dark mode class on document element for Tailwind
     if (newDarkMode) {
       document.documentElement.classList.add('dark')
+      document.body.classList.remove('light')
     } else {
       document.documentElement.classList.remove('dark')
+      document.body.classList.add('light')
     }
 
     // Force a full page style refresh
@@ -89,12 +92,14 @@ function App() {
     // Set state based on localStorage or system preference
     setDarkMode(isDarkMode)
     
-    // Apply dark mode class to document element
+    // Apply dark mode classes
     if (isDarkMode) {
       document.documentElement.classList.add('dark')
+      document.body.classList.remove('light')
       document.body.style.backgroundColor = '#1f2937'
     } else {
       document.documentElement.classList.remove('dark')
+      document.body.classList.add('light')
       document.body.style.backgroundColor = '#f3f4f6'
     }
   }, [])
@@ -141,6 +146,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="courses" element={<Courses />} />
             <Route path="courses/curriculum" element={<CurriculumForm />} />
+            <Route path="courses/curriculum/edit" element={<EditCurriculum />} />
             <Route path="assignments" element={<Assignments />} />
             <Route path="assignments/create" element={<CreateAssignment />} />
             <Route path="assignments/:id" element={<AssignmentDetails />} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Select, { SingleValue, MultiValue } from 'react-select';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AcademicCapIcon,
   BookmarkIcon,
@@ -122,6 +123,12 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 
 // Update the main component to include Step 2 and 3
 const CurriculumForm: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isEditMode = location.state?.editMode || false;
+  const subjectId = location.state?.subjectId;
+  const editData = location.state?.curriculumData;
+
   const initialFormData: FormData = {
     subjectName: '',
     board: '',
@@ -165,6 +172,34 @@ const CurriculumForm: React.FC = () => {
     { title: 'Review', icon: EyeIcon },
   ];
 
+  // Initialize form data if in edit mode
+  useEffect(() => {
+    if (isEditMode && editData) {
+      setFormData({
+        subjectName: editData.subject || '',
+        board: editData.board || '',
+        grade: editData.grade || '',
+        medium: editData.medium || [],
+        chapters: editData.chapters || [{
+          chapterName: '',
+          topicName: '',
+          subtopicName: '',
+          videos: [{
+            videoUrl: '',
+            quiz: {
+              questions: Array(10).fill(null).map(() => ({
+                que: '',
+                opt: { a: '', b: '', c: '', d: '' },
+                correctAnswer: '',
+                explanation: ''
+              }))
+            }
+          }]
+        }]
+      });
+    }
+  }, [isEditMode, editData]);
+
   useEffect(() => {
     const fetchBoardsAndMediums = async () => {
       try {
@@ -183,10 +218,11 @@ const CurriculumForm: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (formData.board !== 'SSC') {
+    // Only clear medium if we're not in edit mode and the board is not SSC
+    if (!isEditMode && formData.board !== 'SSC') {
       setFormData(prev => ({ ...prev, medium: [] }));
     }
-  }, [formData.board]);
+  }, [formData.board, isEditMode]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -325,7 +361,7 @@ const CurriculumForm: React.FC = () => {
     }
   };
 
-  // Modify the form submission
+  // Modify the form submission to handle both create and update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Only submit when explicitly clicking the submit button in step 3
@@ -356,26 +392,43 @@ const CurriculumForm: React.FC = () => {
           chapters: formData.chapters
         };
 
-        const response = await axios.post(
-          'http://localhost:5000/api/curriculum/postCurriculumForm',
-          payload,
-          {
-            headers: {
-              'Content-Type': 'application/json'
+        let response;
+        if (isEditMode && subjectId) {
+          // Update existing curriculum
+          response = await axios.put(
+            `http://localhost:5000/api/curriculum/curriculum/${subjectId}`,
+            payload,
+            {
+              headers: {
+                'Content-Type': 'application/json'
+              }
             }
-          }
-        );
+          );
+        } else {
+          // Create new curriculum
+          response = await axios.post(
+            'http://localhost:5000/api/curriculum/postCurriculumForm',
+            payload,
+            {
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+        }
             
         setResponse(response.data);
         setToast({
           type: 'success',
-          message: 'Curriculum added successfully!'
+          message: isEditMode ? 'Curriculum updated successfully!' : 'Curriculum added successfully!'
         });
         
-        setFormData(initialFormData);
+        if (!isEditMode) {
+          setFormData(initialFormData);
+        }
       } catch (err: any) {
         console.error('Error response:', err.response?.data);
-        const errorMessage = err.response?.data?.message || 'Failed to add curriculum. Please try again.';
+        const errorMessage = err.response?.data?.message || (isEditMode ? 'Failed to update curriculum. Please try again.' : 'Failed to add curriculum. Please try again.');
         setError(err.response?.data || { message: errorMessage });
         setToast({
           type: 'error',
@@ -427,7 +480,7 @@ const CurriculumForm: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
             <h3 className="mb-4 text-lg font-semibold text-gray-900">
               Delete {showDeleteConfirm.itemName}?
@@ -471,9 +524,14 @@ const CurriculumForm: React.FC = () => {
           <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
             <AcademicCapIcon className="h-10 w-10" />
           </div>
-          <h2 className="mb-4 text-4xl font-bold text-gray-900">Create Amazing Curriculum</h2>
+          <h2 className="mb-4 text-4xl font-bold text-gray-900">
+            {isEditMode ? 'Edit Curriculum' : 'Create Amazing Curriculum'}
+          </h2>
           <p className="mx-auto max-w-2xl text-lg text-gray-600">
-            Build engaging educational content with our intuitive curriculum builder. Add chapters, videos, and interactive quizzes to create the perfect learning experience.
+            {isEditMode 
+              ? 'Update your educational content with our intuitive curriculum editor. Modify chapters, videos, and interactive quizzes to enhance the learning experience.'
+              : 'Build engaging educational content with our intuitive curriculum builder. Add chapters, videos, and interactive quizzes to create the perfect learning experience.'
+            }
           </p>
         </section>
 
@@ -549,7 +607,7 @@ const CurriculumForm: React.FC = () => {
                     type="text"
                     value={formData.subjectName}
                     onChange={(e) => handleInputChange('subjectName', e.target.value)}
-                    className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                     placeholder="e.g., Mathematics"
                     required
                   />
@@ -562,10 +620,12 @@ const CurriculumForm: React.FC = () => {
                     <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="text"
+                    type="number"
+                    min={1}
+                    max={12}
                     value={formData.grade}
                     onChange={(e) => handleInputChange('grade', e.target.value)}
-                    className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                     placeholder="e.g., 10"
                     required
                   />
@@ -592,15 +652,16 @@ const CurriculumForm: React.FC = () => {
                       }),
                       menu: base => ({
                         ...base,
-                        backgroundColor: '#2a3041',
-                        border: '1px solid #374151'
+                        backgroundColor: '#fff',
+                        border: '1px solid #E5E7EB',
+                        color: '#111827'
                       }),
                       option: (base, state) => ({
                         ...base,
-                        backgroundColor: state.isFocused ? '#374151' : '#2a3041',
-                        color: '#E5E7EB',
+                        backgroundColor: state.isFocused ? '#f3f4f6' : '#fff',
+                        color: '#111827',
                         '&:active': {
-                          backgroundColor: '#4B5563'
+                          backgroundColor: '#e0e7ef'
                         }
                       }),
                       singleValue: base => ({
@@ -629,7 +690,7 @@ const CurriculumForm: React.FC = () => {
                       type="text"
                       value={inputBoard}
                       onChange={(e) => setInputBoard(e.target.value)}
-                      className="flex-1 rounded-l-lg border border-gray-200 bg-white/80 px-4 py-2 text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="flex-1 rounded-l-lg border border-gray-200 bg-white/80 px-4 py-2 text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-black"
                       placeholder="Add new board"
                     />
                     <button
@@ -650,7 +711,7 @@ const CurriculumForm: React.FC = () => {
                 </div>
 
                 {/* Medium Selection */}
-                <div className="space-y-2">
+                <div className={`space-y-2${formData.board !== 'SSC' ? ' hidden' : ''}`}>
                   <label className="block text-base font-medium text-gray-700">Medium of Instruction</label>
                   <Select<SelectOption, true>
                     isMulti
@@ -668,31 +729,33 @@ const CurriculumForm: React.FC = () => {
                       }),
                       menu: base => ({
                         ...base,
-                        backgroundColor: '#2a3041',
-                        border: '1px solid #374151'
+                        backgroundColor: '#fff',
+                        border: '1px solid #E5E7EB',
+                        color: '#111827'
                       }),
                       option: (base, state) => ({
                         ...base,
-                        backgroundColor: state.isFocused ? '#374151' : '#2a3041',
-                        color: '#E5E7EB',
+                        backgroundColor: state.isFocused ? '#f3f4f6' : '#fff',
+                        color: '#111827',
                         '&:active': {
-                          backgroundColor: '#4B5563'
+                          backgroundColor: '#e0e7ef'
                         }
                       }),
                       multiValue: base => ({
                         ...base,
-                        backgroundColor: '#374151'
+                        backgroundColor: '#f3f4f6',
+                        color: '#111827'
                       }),
                       multiValueLabel: base => ({
                         ...base,
-                        color: '#E5E7EB'
+                        color: '#111827'
                       }),
                       multiValueRemove: base => ({
                         ...base,
-                        color: '#E5E7EB',
+                        color: '#111827',
                         '&:hover': {
-                          backgroundColor: '#4B5563',
-                          color: '#E5E7EB'
+                          backgroundColor: '#e0e7ef',
+                          color: '#111827'
                         }
                       }),
                       input: base => ({
@@ -718,7 +781,7 @@ const CurriculumForm: React.FC = () => {
                       type="text"
                       value={inputMedium}
                       onChange={(e) => setInputMedium(e.target.value)}
-                      className="flex-1 rounded-l-lg border border-gray-200 bg-white/80 px-4 py-2 text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="flex-1 rounded-l-lg border border-gray-200 bg-white/80 px-4 py-2 text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-black"
                       placeholder="Add new medium"
                     />
                     <button
@@ -791,7 +854,7 @@ const CurriculumForm: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => confirmDelete(`chapters`, chapterIndex, 'chapter')}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      className="rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                     >
                       <TrashIcon className="h-5 w-5" />
                     </button>
@@ -806,7 +869,7 @@ const CurriculumForm: React.FC = () => {
                         type="text"
                         value={chapter.chapterName}
                         onChange={(e) => handleInputChange(`chapters.${chapterIndex}.chapterName`, e.target.value)}
-                        className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                         placeholder="e.g., Introduction to Algebra"
                       />
                     </div>
@@ -816,7 +879,7 @@ const CurriculumForm: React.FC = () => {
                         type="text"
                         value={chapter.topicName}
                         onChange={(e) => handleInputChange(`chapters.${chapterIndex}.topicName`, e.target.value)}
-                        className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                         placeholder="e.g., Linear Equations"
                       />
                     </div>
@@ -826,7 +889,7 @@ const CurriculumForm: React.FC = () => {
                         type="text"
                         value={chapter.subtopicName}
                         onChange={(e) => handleInputChange(`chapters.${chapterIndex}.subtopicName`, e.target.value)}
-                        className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                         placeholder="e.g., Solving for X"
                       />
                     </div>
@@ -865,7 +928,7 @@ const CurriculumForm: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => confirmDelete(`chapters.${chapterIndex}.videos`, videoIndex, 'video')}
-                              className="rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                              className="rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
@@ -880,7 +943,7 @@ const CurriculumForm: React.FC = () => {
                                 onChange={(e) =>
                                   handleInputChange(`chapters.${chapterIndex}.videos.${videoIndex}.videoUrl`, e.target.value)
                                 }
-                                className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                                 placeholder="https://youtube.com/watch?v=..."
                               />
                             </div>
@@ -915,7 +978,7 @@ const CurriculumForm: React.FC = () => {
                                             'question'
                                           )
                                         }
-                                        className="rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                        className="rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                                       >
                                         <TrashIcon className="h-4 w-4" />
                                       </button>
@@ -935,7 +998,7 @@ const CurriculumForm: React.FC = () => {
                                             e.target.value
                                           )
                                         }
-                                        className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                        className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                                         placeholder="Enter your question"
                                         required
                                       />
@@ -956,7 +1019,7 @@ const CurriculumForm: React.FC = () => {
                                                 e.target.value
                                               )
                                             }
-                                            className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                            className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                                             placeholder={`Option ${opt}`}
                                             required
                                           />
@@ -969,23 +1032,71 @@ const CurriculumForm: React.FC = () => {
                                         <label className="block text-sm font-medium text-gray-700">
                                           Correct Answer *
                                         </label>
-                                        <select
-                                          value={question.correctAnswer}
-                                          onChange={(e) =>
+                                        <Select
+                                          menuPortalTarget={document.body}
+                                          isClearable={false}
+                                          value={
+                                            question.correctAnswer
+                                              ? [
+                                                  { value: 'a', label: 'Option A' },
+                                                  { value: 'b', label: 'Option B' },
+                                                  { value: 'c', label: 'Option C' },
+                                                  { value: 'd', label: 'Option D' },
+                                                ].find(opt => opt.value === question.correctAnswer)
+                                              : null
+                                          }
+                                          onChange={option =>
                                             handleInputChange(
                                               `chapters.${chapterIndex}.videos.${videoIndex}.quiz.questions.${questionIndex}.correctAnswer`,
-                                              e.target.value
+                                              option ? option.value : ''
                                             )
                                           }
-                                          className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                                          required
-                                        >
-                                          <option value="">Select correct answer</option>
-                                          <option value="a">Option A</option>
-                                          <option value="b">Option B</option>
-                                          <option value="c">Option C</option>
-                                          <option value="d">Option D</option>
-                                        </select>
+                                          options={[
+                                            { value: 'a', label: 'Option A' },
+                                            { value: 'b', label: 'Option B' },
+                                            { value: 'c', label: 'Option C' },
+                                            { value: 'd', label: 'Option D' },
+                                          ]}
+                                          placeholder="Select correct answer"
+                                          styles={{
+                                            menuPortal: base => ({ ...base, zIndex: 9999 }),
+                                            control: base => ({
+                                              ...base,
+                                              minHeight: 48,
+                                              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                              borderColor: '#E5E7EB',
+                                              '&:hover': {
+                                                borderColor: '#3B82F6'
+                                              }
+                                            }),
+                                            menu: base => ({
+                                              ...base,
+                                              backgroundColor: '#fff',
+                                              border: '1px solid #E5E7EB',
+                                              color: '#111827'
+                                            }),
+                                            option: (base, state) => ({
+                                              ...base,
+                                              backgroundColor: state.isFocused ? '#f3f4f6' : '#fff',
+                                              color: '#111827',
+                                              '&:active': {
+                                                backgroundColor: '#e0e7ef'
+                                              }
+                                            }),
+                                            singleValue: base => ({
+                                              ...base,
+                                              color: '#111827'
+                                            }),
+                                            input: base => ({
+                                              ...base,
+                                              color: '#111827'
+                                            }),
+                                            placeholder: base => ({
+                                              ...base,
+                                              color: '#9CA3AF'
+                                            })
+                                          }}
+                                        />
                                       </div>
 
                                       <div className="space-y-2">
@@ -999,7 +1110,7 @@ const CurriculumForm: React.FC = () => {
                                               e.target.value
                                             )
                                           }
-                                          className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                          className="h-12 w-full rounded-lg border border-gray-200 bg-white/80 px-4 text-base outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-black"
                                           placeholder="Explain why this is the correct answer..."
                                         />
                                       </div>
@@ -1137,7 +1248,7 @@ const CurriculumForm: React.FC = () => {
                   className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 px-6 py-3 text-sm font-medium text-white hover:from-emerald-700 hover:to-green-700"
                 >
                   <SparklesIcon className="h-4 w-4" />
-                  Publish Curriculum
+                  {isEditMode ? 'Update Curriculum' : 'Publish Curriculum'}
                 </button>
               </div>
             </div>

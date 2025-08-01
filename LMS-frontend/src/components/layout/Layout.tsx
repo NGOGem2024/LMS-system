@@ -2,8 +2,6 @@ import { useState, useContext } from 'react'
 import { Outlet, useNavigate, Link } from 'react-router-dom'
 import { 
   Bars3Icon,
-  MoonIcon,
-  SunIcon,
   HomeIcon,
   AcademicCapIcon,
   ClipboardDocumentIcon,
@@ -33,7 +31,7 @@ interface LayoutProps {
   darkMode: boolean
 }
 
-const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
+const Layout = ({  }: LayoutProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
@@ -112,7 +110,7 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
 
   return (
     <>
-      <div className="min-h-screen bg-[#0f172a]">
+      <div className="min-h-screen">
         {/* Mobile backdrop */}
         {drawerOpen && (
           <div 
@@ -123,7 +121,7 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
         
         {/* Sidebar - Mobile */}
         <div 
-          className={`fixed inset-y-0 left-0 w-64 bg-[#1e2736] transform transition-transform duration-300 ease-in-out z-40 lg:hidden ${
+          className={`fixed inset-y-0 left-0 w-64 transform transition-transform duration-300 ease-in-out z-40 lg:hidden sidebar ${
             drawerOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -255,7 +253,7 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
         </div>
         
         {/* Sidebar - Desktop */}
-        <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col lg:w-64 bg-[#1e2736]">
+        <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col lg:w-64 sidebar">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
             <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg transition-transform hover:scale-105">
               <AcademicCapIcon className="w-5 h-5 text-white" />
@@ -379,13 +377,14 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
                 <div className="text-sm font-medium text-white truncate">{user?.name}</div>
                 <div className="text-xs text-gray-400 capitalize truncate">{user?.role}</div>
               </div>
-              <button 
+              {/* Dark mode toggle hidden for now */}
+              {/* <button 
                 onClick={toggleDarkMode}
                 className="p-2 text-gray-400 hover:text-white transition-colors"
                 aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {darkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -393,7 +392,7 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
         {/* Main content */}
         <div className="lg:pl-64">
           {/* Top navigation */}
-          <header className="sticky top-0 z-20 bg-[#1e2736]/80 backdrop-blur-sm border-b border-white/10">
+          <header className="sticky top-0 z-20 backdrop-blur-sm border-b border-gray-200 dark:border-white/10">
             <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-4">
                 <button
@@ -405,13 +404,14 @@ const Layout = ({ toggleDarkMode, darkMode }: LayoutProps) => {
               </div>
               
               <div className="flex items-center gap-3">
-                <button 
+                {/* Dark mode toggle hidden for now */}
+                {/* <button 
                   onClick={toggleDarkMode}
                   className="p-2 text-gray-400 hover:text-white transition-all hover:bg-white/5 rounded-lg hidden lg:block"
                   aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
                 >
                   {darkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-                </button>
+                </button> */}
                 
                 <div className="relative">
                   <button
