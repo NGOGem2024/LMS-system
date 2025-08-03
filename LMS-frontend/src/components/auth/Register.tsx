@@ -358,7 +358,7 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [orgName, setOrgName] = useState('')
   const [selectedOrg, setSelectedOrg] = useState<{ id: string; name: string } | null>(null)
-  const [role, setRole] = useState('student')
+  const [role, setRole] = useState('instructor')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formErrors, setFormErrors] = useState<{
     name?: string,
@@ -378,7 +378,6 @@ const Register = () => {
 
   // Available roles
   const roles = [
-    // { value: 'student', label: 'Student' },
     { value: 'instructor', label: 'Instructor' },
     { value: 'admin', label: 'Admin' }
   ]
